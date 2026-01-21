@@ -16,14 +16,14 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
     e.preventDefault();
     setLoading(true);
     
-    // Symulacja autoryzacji: Każdy mail ze słowem 'admin' dostaje uprawnienia admina
     setTimeout(() => {
       const isAdmin = email.toLowerCase().includes('admin');
       onLogin({
         id: Math.random().toString(36).substr(2, 9),
         email: email || (isAdmin ? 'admin@rzepka.pl' : 'pracownik@rzepka.pl'),
         role: isAdmin ? 'admin' : 'user',
-        default_location_id: '1',
+        // Admin nie posiada domyślnej lokalizacji przypisanej na sztywno
+        default_location_id: isAdmin ? '' : '1',
       });
       setLoading(false);
     }, 800);
@@ -97,7 +97,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                   onClick={() => setEmail('admin@rzepka.pl')}
                   className="px-4 py-3 bg-slate-50 border-2 border-slate-100 rounded-xl text-[10px] font-black text-slate-500 hover:bg-amber-500 hover:text-white hover:border-amber-500 transition-all uppercase"
                 >
-                  Admin
+                  Administrator
                 </button>
                 <button 
                   onClick={() => setEmail('pracownik@rzepka.pl')}

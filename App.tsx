@@ -51,7 +51,8 @@ const App: React.FC = () => {
       case 'locations': return <AdminLocations />;
       case 'messages': return <AdminMessages user={user} />;
       case 'reports-simple': return <AdminReportsSimple />;
-      case 'reports-advanced': return <AdminReportsAdvanced />;
+      case 'reports-monthly': return <AdminReportsAdvanced mode="monthly" />;
+      case 'reports-yearly': return <AdminReportsAdvanced mode="yearly" />;
       case 'reports-data': return <AdminReports />;
       default: return <Dashboard user={user} />;
     }

@@ -1,9 +1,9 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Calendar, Download, Search, CheckCircle, 
   AlertTriangle, Edit2, Trash2, CalendarRange, 
-  Globe, MapPin, X, Save, DollarSign
+  Globe, MapPin, X, Save, DollarSign, RefreshCw, Filter
 } from 'lucide-react';
 import { LOCATIONS } from '../constants';
 
@@ -11,237 +11,202 @@ const AdminReports: React.FC = () => {
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [viewScope, setViewScope] = useState<'global' | string>('global');
   const [editModal, setEditModal] = useState<any | null>(null);
+  const [reports, setReports] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // Mock data representing database entries
-  const [reports, setReports] = useState([
-    { id: '1', location_id: '1', point: 'JĘDRZYCHÓW', user: 'jan.kowalski@rzepka.pl', bakerySales: 1200.50, bakeryLoss: 60.00, pastrySales: 850.00, pastryLoss: 40.00, verified: true, date: '2026-01-21' },
-    { id: '2', location_id: '2', point: 'KUPIECKA', user: 'anna.nowak@rzepka.pl', bakerySales: 950.00, bakeryLoss: 32.00, pastrySales: 600.00, pastryLoss: 15.00, verified: true, date: '2026-01-21' },
-    { id: '3', location_id: '4', point: 'FABRYCZNA', user: 'marek.ptak@rzepka.pl', bakerySales: 2100.00, bakeryLoss: 105.00, pastrySales: 1100.00, pastryLoss: 50.00, verified: false, date: '2026-01-21' },
-    { id: '4', location_id: '5', point: 'PODGÓRNA', user: 'ewa.lis@rzepka.pl', bakerySales: 1350.20, bakeryLoss: 45.00, pastrySales: 920.00, pastryLoss: 22.50, verified: true, date: '2026-01-21' },
-  ]);
+  // Funkcja generująca mockowe raporty dla wybranej daty
+  const fetchReports = () => {
+    setLoading(true);
+    
+    setTimeout(() => {
+      const mockReports = LOCATIONS.map(loc => {
+        const bSales = 1200 + Math.random() * 800;
+        const pSales = 800 + Math.random() * 600;
+        return {
+          id: Math.random().toString(36).substr(2, 9),
+          date: selectedDate,
+          location_id: loc.id,
+          location_name: loc.name,
+          user_email: `${loc.name.toLowerCase()}@rzepka.pl`,
+          bakery_sales: bSales,
+          bakery_loss: bSales * (0.02 + Math.random() * 0.05),
+          pastry_sales: pSales,
+          pastry_loss: pSales * (0.03 + Math.random() * 0.06),
+          verified: Math.random() > 0.3
+        };
+      });
 
-  const filteredReports = viewScope === 'global' 
-    ? reports 
-    : reports.filter(r => r.location_id === viewScope);
+      const filtered = viewScope === 'global' 
+        ? mockReports 
+        : mockReports.filter(r => r.location_id === viewScope);
+
+      setReports(filtered);
+      setLoading(false);
+    }, 800);
+  };
+
+  useEffect(() => { fetchReports(); }, [selectedDate, viewScope]);
 
   const handleUpdate = (e: React.FormEvent) => {
     e.preventDefault();
-    setReports(prev => prev.map(r => r.id === editModal.id ? editModal : r));
+    setReports(prev => prev.map(r => r.id === editModal.id ? { ...editModal, verified: true } : r));
     setEditModal(null);
   };
 
-  const totalSales = filteredReports.reduce((acc, curr) => acc + curr.bakerySales + curr.pastrySales, 0);
-  const totalLoss = filteredReports.reduce((acc, curr) => acc + curr.bakeryLoss + curr.pastryLoss, 0);
-
   return (
-    <div className="space-y-6 pb-20">
-      {/* Edit Modal */}
+    <div className="space-y-8 pb-20">
+      {/* Modal korekty (Mock) */}
       {editModal && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-          <div className="bg-white w-full max-w-2xl rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in duration-200">
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[100] flex items-center justify-center p-4">
+          <div className="bg-white w-full max-w-2xl rounded-[3rem] shadow-2xl overflow-hidden animate-in zoom-in duration-200">
             <form onSubmit={handleUpdate} className="p-10 space-y-8">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Edycja Raportu</h3>
-                  <p className="text-2xl font-black text-slate-900">{editModal.point} &middot; {editModal.date}</p>
+                  <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Korekta danych</h3>
+                  <p className="text-2xl font-black text-slate-900">{editModal.location_name} &middot; {editModal.date}</p>
                 </div>
-                <button type="button" onClick={() => setEditModal(null)} className="p-2 bg-slate-50 text-slate-400 rounded-full hover:bg-slate-100"><X size={24}/></button>
+                <button type="button" onClick={() => setEditModal(null)} className="p-3 bg-slate-50 text-slate-400 hover:text-slate-900 rounded-full transition-all"><X size={24}/></button>
               </div>
 
               <div className="grid grid-cols-2 gap-8">
-                {/* Bakery Section */}
-                <div className="space-y-4 p-6 bg-amber-50 rounded-3xl border border-amber-100">
-                   <p className="text-xs font-black text-amber-800 uppercase flex items-center gap-2">🍞 Piekarnia</p>
+                <div className="space-y-4 p-6 bg-amber-50/50 rounded-3xl border border-amber-100">
+                   <p className="text-xs font-black text-amber-700 uppercase tracking-widest flex items-center gap-2">🍞 Piekarnia</p>
                    <div className="space-y-4">
                       <div>
                         <label className="text-[9px] font-black text-slate-400 uppercase ml-1">Sprzedaż</label>
-                        <input 
-                          type="number" step="0.01" 
-                          value={editModal.bakerySales}
-                          onChange={e => setEditModal({...editModal, bakerySales: parseFloat(e.target.value)})}
-                          className="w-full px-4 py-3 bg-white border border-amber-200 rounded-xl font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
-                        />
+                        <input type="number" step="0.01" value={editModal.bakery_sales} onChange={e => setEditModal({...editModal, bakery_sales: parseFloat(e.target.value)})} className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl font-bold text-slate-800 focus:border-amber-500 outline-none" />
                       </div>
                       <div>
                         <label className="text-[9px] font-black text-slate-400 uppercase ml-1">Strata</label>
-                        <input 
-                          type="number" step="0.01" 
-                          value={editModal.bakeryLoss}
-                          onChange={e => setEditModal({...editModal, bakeryLoss: parseFloat(e.target.value)})}
-                          className="w-full px-4 py-3 bg-white border border-amber-200 rounded-xl font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
-                        />
+                        <input type="number" step="0.01" value={editModal.bakery_loss} onChange={e => setEditModal({...editModal, bakery_loss: parseFloat(e.target.value)})} className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl font-bold text-slate-800 focus:border-amber-500 outline-none" />
                       </div>
                    </div>
                 </div>
 
-                {/* Pastry Section */}
-                <div className="space-y-4 p-6 bg-pink-50 rounded-3xl border border-pink-100">
-                   <p className="text-xs font-black text-pink-800 uppercase flex items-center gap-2">🍰 Cukiernia</p>
+                <div className="space-y-4 p-6 bg-indigo-50/50 rounded-3xl border border-indigo-100">
+                   <p className="text-xs font-black text-indigo-700 uppercase tracking-widest flex items-center gap-2">🍰 Cukiernia</p>
                    <div className="space-y-4">
                       <div>
                         <label className="text-[9px] font-black text-slate-400 uppercase ml-1">Sprzedaż</label>
-                        <input 
-                          type="number" step="0.01" 
-                          value={editModal.pastrySales}
-                          onChange={e => setEditModal({...editModal, pastrySales: parseFloat(e.target.value)})}
-                          className="w-full px-4 py-3 bg-white border border-pink-200 rounded-xl font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-pink-500/20"
-                        />
+                        <input type="number" step="0.01" value={editModal.pastry_sales} onChange={e => setEditModal({...editModal, pastry_sales: parseFloat(e.target.value)})} className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl font-bold text-slate-800 focus:border-indigo-500 outline-none" />
                       </div>
                       <div>
                         <label className="text-[9px] font-black text-slate-400 uppercase ml-1">Strata</label>
-                        <input 
-                          type="number" step="0.01" 
-                          value={editModal.pastryLoss}
-                          onChange={e => setEditModal({...editModal, pastryLoss: parseFloat(e.target.value)})}
-                          className="w-full px-4 py-3 bg-white border border-pink-200 rounded-xl font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-pink-500/20"
-                        />
+                        <input type="number" step="0.01" value={editModal.pastry_loss} onChange={e => setEditModal({...editModal, pastry_loss: parseFloat(e.target.value)})} className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl font-bold text-slate-800 focus:border-indigo-500 outline-none" />
                       </div>
                    </div>
                 </div>
               </div>
 
               <div className="flex gap-4">
-                <button type="submit" className="flex-1 py-5 bg-slate-900 text-white rounded-2xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-amber-600 transition-all shadow-xl">
-                   <Save size={18} /> Zapisz Zmiany
+                <button type="submit" className="flex-1 py-5 bg-slate-900 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-emerald-600 transition-all shadow-xl">
+                   Zatwierdź zmiany
                 </button>
-                <button type="button" onClick={() => setEditModal(null)} className="px-10 py-5 bg-slate-100 text-slate-400 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-slate-200 transition-all">Anuluj</button>
+                <button type="button" onClick={() => setEditModal(null)} className="px-8 py-5 bg-slate-100 text-slate-400 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-slate-200 transition-all">Anuluj</button>
               </div>
             </form>
           </div>
         </div>
       )}
 
-      {/* Control Bar */}
-      <div className="bg-white p-4 rounded-[2rem] border border-slate-200 shadow-sm flex flex-col xl:flex-row xl:items-center justify-between gap-4">
+      {/* Kontrolki filtrowania */}
+      <div className="bg-white p-6 rounded-[2.5rem] border border-slate-200 shadow-sm flex flex-col xl:flex-row xl:items-center justify-between gap-6">
         <div className="flex items-center gap-4">
-           <div className={`p-3 rounded-2xl ${viewScope === 'global' ? 'bg-slate-900 text-white' : 'bg-amber-100 text-amber-700'}`}>
-              {viewScope === 'global' ? <Globe size={24}/> : <MapPin size={24}/>}
+           <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${viewScope === 'global' ? 'bg-slate-900 text-white' : 'bg-amber-100 text-amber-700'}`}>
+              {viewScope === 'global' ? <Globe size={28}/> : <MapPin size={28}/>}
            </div>
            <div>
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Zarządzanie Danymi</p>
-              <h2 className="text-xl font-black text-slate-900">
-                {viewScope === 'global' ? 'Cała Sieć' : LOCATIONS.find(l => l.id === viewScope)?.name}
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Dziennik raportów</p>
+              <h2 className="text-2xl font-black text-slate-900 tracking-tight">
+                {viewScope === 'global' ? 'Pełne zestawienie sieci' : LOCATIONS.find(l => l.id === viewScope)?.name}
               </h2>
            </div>
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
-           <select 
-             value={viewScope}
-             onChange={e => setViewScope(e.target.value)}
-             className="pl-4 pr-10 py-2.5 bg-slate-50 border-none font-black text-[10px] text-slate-700 focus:ring-0 outline-none uppercase tracking-widest cursor-pointer rounded-xl"
-           >
-             <option value="global">🌍 WSZYSTKIE PUNKTY</option>
-             {LOCATIONS.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
-           </select>
-
-           <div className="relative">
-             <Calendar size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-             <input type="date" value={selectedDate} onChange={e => setSelectedDate(e.target.value)} className="pl-9 pr-4 py-2.5 bg-slate-50 border-none rounded-xl text-[10px] font-black text-slate-700 outline-none focus:ring-0 shadow-sm"/>
+           <div className="flex items-center gap-2 bg-slate-50 p-1.5 rounded-2xl border border-slate-100">
+             <Filter size={16} className="ml-3 text-slate-400" />
+             <select value={viewScope} onChange={e => setViewScope(e.target.value)} className="bg-transparent border-none font-black text-[10px] text-slate-700 focus:ring-0 outline-none uppercase tracking-widest cursor-pointer pr-8">
+               <option value="global">Wszystkie punkty</option>
+               {LOCATIONS.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
+             </select>
            </div>
-
-           <button className="flex items-center gap-2 bg-slate-900 text-white px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-amber-600 transition-all shadow-xl">
-             <Download size={14} /> Eksport XLS
+           <input type="date" value={selectedDate} onChange={e => setSelectedDate(e.target.value)} className="px-5 py-3 bg-slate-50 border border-slate-100 rounded-2xl text-[11px] font-black text-slate-700 outline-none focus:ring-2 focus:ring-amber-500/20"/>
+           <button onClick={fetchReports} className="p-3.5 bg-slate-900 text-white hover:bg-amber-600 rounded-2xl transition-all shadow-lg active:scale-95">
+             <RefreshCw size={20} className={loading ? 'animate-spin' : ''} />
            </button>
         </div>
       </div>
 
-      {/* Mini Aggregates */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-         <div className="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm flex items-center gap-4">
-            <div className="w-10 h-10 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center"><DollarSign size={20}/></div>
-            <div>
-               <p className="text-[9px] font-black text-slate-400 uppercase">Suma Sprzedaży</p>
-               <p className="text-lg font-black text-slate-900">{totalSales.toLocaleString()} zł</p>
+      {/* Tabela wyników */}
+      <div className="bg-white rounded-[3rem] border border-slate-200 shadow-sm overflow-hidden min-h-[500px] relative">
+        {loading ? (
+          <div className="absolute inset-0 bg-white/50 backdrop-blur-sm flex items-center justify-center z-10">
+            <div className="flex flex-col items-center gap-4">
+               <div className="w-12 h-12 border-4 border-slate-100 border-t-amber-500 rounded-full animate-spin"></div>
+               <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Synchronizacja danych...</p>
             </div>
-         </div>
-         <div className="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm flex items-center gap-4">
-            <div className="w-10 h-10 bg-rose-50 text-rose-600 rounded-xl flex items-center justify-center"><AlertTriangle size={20}/></div>
-            <div>
-               <p className="text-[9px] font-black text-slate-400 uppercase">Suma Strat</p>
-               <p className="text-lg font-black text-slate-900">{totalLoss.toLocaleString()} zł</p>
-            </div>
-         </div>
-         <div className="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm flex items-center gap-4 lg:col-span-2">
-            <div className="flex -space-x-3 overflow-hidden ml-2">
-               {[1,2,3,4,5].map(i => <div key={i} className="inline-block h-8 w-8 rounded-full ring-2 ring-white bg-slate-200"></div>)}
-               <div className="flex items-center justify-center h-8 w-8 rounded-full ring-2 ring-white bg-amber-500 text-[10px] font-black text-white">+2</div>
-            </div>
-            <div className="ml-2">
-               <p className="text-[9px] font-black text-slate-400 uppercase">Aktywni Pracownicy</p>
-               <p className="text-sm font-bold text-slate-700">7 Raportów oczekiwanych dzisiaj</p>
-            </div>
-         </div>
-      </div>
-
-      {/* Main Data Table */}
-      <div className="bg-white rounded-[2.5rem] border border-slate-200 shadow-sm overflow-hidden">
-        <div className="p-8 border-b border-slate-50 flex items-center justify-between bg-slate-50/30">
-          <span className="text-xs font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
-            <CalendarRange size={16} className="text-amber-500" />
-            Wykaz Dzienny: <span className="text-slate-900">{selectedDate}</span>
-          </span>
-          <div className="relative">
-            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300" />
-            <input type="text" placeholder="Szukaj maila..." className="pl-9 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-[10px] font-black text-slate-700 outline-none w-64 shadow-sm" />
           </div>
-        </div>
+        ) : null}
 
         <div className="overflow-x-auto">
           <table className="w-full text-left">
             <thead>
               <tr className="bg-slate-900 text-white">
-                <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest opacity-50">Lokalizacja / Autor</th>
-                <th className="px-6 py-6 text-[10px] font-black uppercase tracking-widest opacity-50">Piekarnia (S / L)</th>
-                <th className="px-6 py-6 text-[10px] font-black uppercase tracking-widest opacity-50">Cukiernia (S / L)</th>
+                <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest opacity-50">Lokalizacja</th>
+                <th className="px-6 py-6 text-[10px] font-black uppercase tracking-widest opacity-50">Piekarnia (S/L)</th>
+                <th className="px-6 py-6 text-[10px] font-black uppercase tracking-widest opacity-50">Cukiernia (S/L)</th>
                 <th className="px-6 py-6 text-[10px] font-black uppercase tracking-widest opacity-50">Suma Dnia</th>
                 <th className="px-6 py-6 text-center text-[10px] font-black uppercase tracking-widest opacity-50">Weryfikacja</th>
                 <th className="px-8 py-6 text-right text-[10px] font-black uppercase tracking-widest opacity-50">Opcje</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {filteredReports.map(report => (
+              {reports.map(report => (
                 <tr key={report.id} className="hover:bg-slate-50 transition-colors group">
-                  <td className="px-8 py-6">
-                    <p className="text-sm font-black text-slate-800 tracking-tight">{report.point}</p>
-                    <p className="text-[10px] font-bold text-slate-400">{report.user}</p>
+                  <td className="px-8 py-7">
+                    <p className="text-sm font-black text-slate-800 uppercase tracking-tight">{report.location_name}</p>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">{report.user_email}</p>
                   </td>
-                  <td className="px-6 py-6">
+                  <td className="px-6 py-7">
                     <div className="flex flex-col">
-                       <span className="text-xs font-black text-slate-900">{report.bakerySales.toLocaleString()} zł</span>
-                       <span className="text-[10px] font-bold text-rose-500">{report.bakeryLoss.toLocaleString()} zł loss</span>
+                       <span className="text-sm font-black text-slate-900">{report.bakery_sales.toLocaleString(undefined, { minimumFractionDigits: 2 })} zł</span>
+                       <span className="text-[10px] font-bold text-rose-500 uppercase tracking-tighter">Strata: {report.bakery_loss.toFixed(2)} zł</span>
                     </div>
                   </td>
-                  <td className="px-6 py-6">
+                  <td className="px-6 py-7">
                     <div className="flex flex-col">
-                       <span className="text-xs font-black text-slate-900">{report.pastrySales.toLocaleString()} zł</span>
-                       <span className="text-[10px] font-bold text-rose-500">{report.pastryLoss.toLocaleString()} zł loss</span>
+                       <span className="text-sm font-black text-slate-900">{report.pastry_sales.toLocaleString(undefined, { minimumFractionDigits: 2 })} zł</span>
+                       <span className="text-[10px] font-bold text-rose-500 uppercase tracking-tighter">Strata: {report.pastry_loss.toFixed(2)} zł</span>
                     </div>
                   </td>
-                  <td className="px-6 py-6">
-                    <div className="flex flex-col">
-                       <span className="text-xs font-black text-emerald-600">{(report.bakerySales + report.pastrySales).toLocaleString()} zł</span>
-                       <span className="text-[10px] font-bold text-slate-400">Total</span>
-                    </div>
+                  <td className="px-6 py-7">
+                     <span className="text-base font-black text-emerald-600">{(report.bakery_sales + report.pastry_sales).toLocaleString(undefined, { minimumFractionDigits: 2 })} zł</span>
                   </td>
-                  <td className="px-6 py-6 text-center">
-                    <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[9px] font-black uppercase ${
+                  <td className="px-6 py-7 text-center">
+                    <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${
                       report.verified ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
                     }`}>
-                      {report.verified ? <CheckCircle size={10}/> : <AlertTriangle size={10}/>}
+                      {report.verified ? <CheckCircle size={12}/> : <div className="w-2 h-2 bg-amber-500 rounded-full"></div>}
                       {report.verified ? 'Zweryfikowano' : 'Oczekuje'}
                     </div>
                   </td>
-                  <td className="px-8 py-6 text-right">
-                    <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button onClick={() => setEditModal(report)} className="p-2.5 bg-white border border-slate-200 text-slate-400 hover:text-amber-600 rounded-xl shadow-sm transition-all"><Edit2 size={16}/></button>
-                      <button className="p-2.5 bg-white border border-slate-200 text-slate-400 hover:text-rose-600 rounded-xl shadow-sm transition-all"><Trash2 size={16}/></button>
+                  <td className="px-8 py-7 text-right">
+                    <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all transform translate-x-2 group-hover:translate-x-0">
+                      <button onClick={() => setEditModal(report)} className="p-2.5 bg-white border border-slate-200 text-slate-400 hover:text-amber-600 rounded-xl transition-all shadow-sm"><Edit2 size={16}/></button>
+                      <button className="p-2.5 bg-white border border-slate-200 text-slate-400 hover:text-rose-600 rounded-xl transition-all shadow-sm"><Trash2 size={16}/></button>
                     </div>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
+          {reports.length === 0 && !loading && (
+            <div className="py-20 flex flex-col items-center justify-center text-slate-300">
+               <AlertTriangle size={48} className="mb-4" />
+               <p className="text-xs font-black uppercase tracking-widest">Brak raportów dla wybranej daty</p>
+            </div>
+          )}
         </div>
       </div>
     </div>
