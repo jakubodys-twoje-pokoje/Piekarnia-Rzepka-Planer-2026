@@ -77,8 +77,13 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
     <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
       <div className="max-w-md w-full space-y-8">
         <div className="text-center animate-in fade-in slide-in-from-bottom-4 duration-700">
-          <div className="w-20 h-20 bg-amber-600 rounded-[2rem] flex items-center justify-center text-white font-black text-3xl mx-auto mb-6 shadow-2xl shadow-amber-600/30 rotate-3">
-            R
+          {/* Zmniejszony padding p-1.5 zamiast p-3 dla lepszego balansu */}
+          <div className="w-28 h-28 bg-white rounded-[2.5rem] p-1.5 flex items-center justify-center mx-auto mb-6 shadow-2xl shadow-amber-600/20 rotate-3 overflow-hidden border-4 border-amber-600">
+            <img 
+              src="https://stronyjakubowe.pl/wp-content/uploads/2026/01/89358602_111589903786829_6313621308307406848_n.jpg" 
+              alt="Piekarnia Rzepka Logo" 
+              className="w-full h-full object-contain"
+            />
           </div>
           <h1 className="text-4xl font-black text-slate-900 mb-2 tracking-tighter">Piekarnia Rzepka</h1>
           <p className="text-slate-400 font-bold uppercase text-[10px] tracking-[0.3em]">System Zarządzania Przychodami</p>
@@ -98,13 +103,13 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
             <div className="space-y-2">
               <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Konto Pracownika</label>
               <div className="relative">
-                <User size={18} className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300" />
+                <User size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" />
                 <input
                   type="email"
                   placeholder="nazwisko@rzepka.pl"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full pl-14 pr-6 py-5 bg-slate-50 border-2 border-slate-100 rounded-3xl focus:border-amber-500 focus:bg-white outline-none transition-all font-bold text-slate-700"
+                  className="w-full pl-12 pr-6 py-5 bg-slate-50 border-2 border-slate-100 rounded-3xl focus:border-amber-500 focus:bg-white outline-none transition-all font-bold text-slate-700"
                   required
                 />
               </div>
@@ -113,13 +118,13 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
             <div className="space-y-2">
               <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Hasło Dostępu</label>
               <div className="relative">
-                <Shield size={18} className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300" />
+                <Shield size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" />
                 <input
                   type="password"
                   placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full pl-14 pr-6 py-5 bg-slate-50 border-2 border-slate-100 rounded-3xl focus:border-amber-500 focus:bg-white outline-none transition-all font-bold text-slate-700"
+                  className="w-full pl-12 pr-6 py-5 bg-slate-50 border-2 border-slate-100 rounded-3xl focus:border-amber-500 focus:bg-white outline-none transition-all font-bold text-slate-700"
                   required
                 />
               </div>
@@ -143,7 +148,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
         </div>
 
         <p className="text-center text-slate-400 text-[10px] font-bold uppercase tracking-widest">
-          &copy; 2026 Piekarnia Rzepka &middot; v2.2.0-stable
+          &copy; 2026 Piekarnia Rzepka &middot; v2.2.1-stable
         </p>
       </div>
     </div>

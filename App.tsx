@@ -23,19 +23,25 @@ const App: React.FC = () => {
   const [initializing, setInitializing] = useState(true);
 
   useEffect(() => {
-    // Sprawdź czy jest aktywna sesja przy starcie
-    const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user) {
-        await fetchUserProfile(session.user.id);
+    // 1. Sprawdzenie aktualnej sesji przy starcie
+    const initAuth = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+          await fetchUserProfile(session.user.id);
+        }
+      } catch (err) {
+        console.error("Auth initialization error:", err);
+      } finally {
+        setInitializing(false);
       }
-      setInitializing(false);
     };
 
-    checkSession();
+    initAuth();
 
-    // Nasłuchuj zmian w sesji (logowanie/wylogowanie)
+    // 2. Subskrypcja zmian stanu autoryzacji (real-time)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log(`[AUTH] Event: ${event}`);
       if (event === 'SIGNED_IN' && session?.user) {
         await fetchUserProfile(session.user.id);
       } else if (event === 'SIGNED_OUT') {
@@ -66,19 +72,25 @@ const App: React.FC = () => {
         localStorage.setItem('user_profile', JSON.stringify(profile));
       }
     } catch (err) {
-      console.error("Błąd pobierania profilu:", err);
+      console.error("Profile fetch error:", err);
     }
   };
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
+    try {
+      await supabase.auth.signOut();
+    } catch (err) {
+      console.error("Sign out error:", err);
+      // Wymuszenie czyszczenia stanu jeśli API zawiedzie
+      setUser(null);
+    }
   };
 
   if (initializing) {
     return (
       <div className="h-screen w-full flex flex-col items-center justify-center bg-slate-50 gap-4">
         <Loader2 size={40} className="animate-spin text-amber-600" />
-        <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">Autoryzacja systemu...</p>
+        <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">Autoryzacja systemu Rzepka...</p>
       </div>
     );
   }

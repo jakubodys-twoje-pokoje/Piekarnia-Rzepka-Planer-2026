@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { MENU_ITEMS, MenuItem } from '../constants';
 import { LogOut, ChevronDown, ChevronRight } from 'lucide-react';
@@ -40,8 +39,12 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, activeTab, onTabChange, userR
   return (
     <div className={`bg-white border-r border-slate-200 transition-all duration-300 flex flex-col ${isOpen ? 'w-64' : 'w-20'}`}>
       <div className="p-6 flex items-center gap-3 border-b border-slate-100 shrink-0">
-        <div className="w-8 h-8 bg-amber-600 rounded-lg flex items-center justify-center text-white font-bold shrink-0 shadow-lg shadow-amber-600/20">
-          R
+        <div className="w-10 h-10 bg-white rounded-xl p-1.5 flex items-center justify-center overflow-hidden shrink-0 shadow-lg shadow-amber-600/10 border border-amber-500/20">
+          <img 
+            src="https://stronyjakubowe.pl/wp-content/uploads/2026/01/89358602_111589903786829_6313621308307406848_n.jpg" 
+            alt="Logo" 
+            className="w-full h-full object-contain"
+          />
         </div>
         {isOpen && <span className="font-black text-slate-800 tracking-tight uppercase text-xs">System Rzepka</span>}
       </div>
