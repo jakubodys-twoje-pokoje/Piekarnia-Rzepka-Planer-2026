@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { UserProfile } from '../types';
 import { LOCATIONS } from '../constants';
 import { Save, AlertCircle, CheckCircle2, Calendar as CalendarIcon } from 'lucide-react';
+import { supabase } from '../supabase';
 
 interface DataEntryProps {
   user: UserProfile;
@@ -19,6 +20,7 @@ const DataEntry: React.FC<DataEntryProps> = ({ user }) => {
   });
 
   const [status, setStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -28,9 +30,23 @@ const DataEntry: React.FC<DataEntryProps> = ({ user }) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setStatus('saving');
+    setErrorMessage(null);
     
-    // Symulacja zapisu do bazy danych (latencja sieciowa)
-    setTimeout(() => {
+    try {
+      const { error } = await supabase
+        .from('daily_reports')
+        .insert([{
+          date: formData.date,
+          location_id: formData.locationId,
+          bakery_sales: parseFloat(formData.bakerySales),
+          bakery_loss: parseFloat(formData.bakeryLoss),
+          pastry_sales: parseFloat(formData.pastrySales),
+          pastry_loss: parseFloat(formData.pastryLoss),
+          user_id: user.id
+        }]);
+
+      if (error) throw error;
+
       setStatus('success');
       setFormData(prev => ({
         ...prev,
@@ -40,7 +56,11 @@ const DataEntry: React.FC<DataEntryProps> = ({ user }) => {
         pastryLoss: '',
       }));
       setTimeout(() => setStatus('idle'), 3000);
-    }, 1200);
+    } catch (err: any) {
+      console.error(err);
+      setStatus('error');
+      setErrorMessage(err.message || 'Wystąpił błąd podczas zapisu.');
+    }
   };
 
   return (
@@ -51,6 +71,13 @@ const DataEntry: React.FC<DataEntryProps> = ({ user }) => {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
+        {status === 'error' && (
+           <div className="p-4 bg-rose-50 border border-rose-100 rounded-2xl flex items-center gap-3 text-rose-600 text-xs font-bold">
+            <AlertCircle size={18} />
+            {errorMessage}
+          </div>
+        )}
+
         <div className="bg-white p-6 rounded-3xl border-2 border-slate-100 shadow-sm grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-3">
             <label className="flex items-center gap-2 text-sm font-bold text-slate-700 uppercase tracking-wider ml-1">
@@ -74,6 +101,7 @@ const DataEntry: React.FC<DataEntryProps> = ({ user }) => {
               onChange={handleInputChange}
               className="w-full px-6 py-4 bg-slate-50 border-2 border-slate-100 rounded-2xl focus:border-amber-500 focus:bg-white outline-none transition-all text-xl font-bold text-slate-800 appearance-none cursor-pointer"
               required
+              disabled={user.role !== 'admin'}
             >
               {LOCATIONS.map(loc => (
                 <option key={loc.id} value={loc.id}>{loc.name}</option>

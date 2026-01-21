@@ -1,7 +1,8 @@
 
 import React, { useState } from 'react';
 import { UserProfile } from '../types';
-import { LogIn, Shield, User } from 'lucide-react';
+import { LogIn, Shield, User, AlertCircle } from 'lucide-react';
+import { supabase } from '../supabase';
 
 interface LoginProps {
   onLogin: (user: UserProfile) => void;
@@ -11,22 +12,42 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setError(null);
     
-    setTimeout(() => {
-      const isAdmin = email.toLowerCase().includes('admin');
-      onLogin({
-        id: Math.random().toString(36).substr(2, 9),
-        email: email || (isAdmin ? 'admin@rzepka.pl' : 'pracownik@rzepka.pl'),
-        role: isAdmin ? 'admin' : 'user',
-        // Admin nie posiada domyślnej lokalizacji przypisanej na sztywno
-        default_location_id: isAdmin ? '' : '1',
+    try {
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
       });
+
+      if (authError) throw authError;
+
+      if (authData.user) {
+        const { data: profileData, error: profileError } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', authData.user.id)
+          .single();
+
+        if (profileError) throw profileError;
+
+        onLogin({
+          id: profileData.id,
+          email: profileData.email,
+          role: profileData.role,
+          default_location_id: profileData.default_location_id,
+        });
+      }
+    } catch (err: any) {
+      setError(err.message || 'Błąd logowania. Sprawdź dane.');
+    } finally {
       setLoading(false);
-    }, 800);
+    }
   };
 
   return (
@@ -44,6 +65,13 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
           <div className="absolute top-0 left-0 w-full h-1.5 bg-amber-500"></div>
           
           <form onSubmit={handleSubmit} className="space-y-6">
+            {error && (
+              <div className="p-4 bg-rose-50 border border-rose-100 rounded-2xl flex items-center gap-3 text-rose-600 text-xs font-bold animate-in fade-in slide-in-from-top-1">
+                <AlertCircle size={18} />
+                {error}
+              </div>
+            )}
+
             <div className="space-y-2">
               <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Email Służbowy</label>
               <div className="relative">
@@ -89,24 +117,6 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
               )}
             </button>
           </form>
-
-          <div className="mt-8 pt-8 border-t border-slate-100 space-y-4">
-             <div className="text-center text-[10px] font-black text-slate-300 uppercase tracking-widest">Konta Testowe</div>
-             <div className="grid grid-cols-2 gap-3">
-                <button 
-                  onClick={() => setEmail('admin@rzepka.pl')}
-                  className="px-4 py-3 bg-slate-50 border-2 border-slate-100 rounded-xl text-[10px] font-black text-slate-500 hover:bg-amber-500 hover:text-white hover:border-amber-500 transition-all uppercase"
-                >
-                  Administrator
-                </button>
-                <button 
-                  onClick={() => setEmail('pracownik@rzepka.pl')}
-                  className="px-4 py-3 bg-slate-50 border-2 border-slate-100 rounded-xl text-[10px] font-black text-slate-500 hover:bg-emerald-500 hover:text-white hover:border-emerald-500 transition-all uppercase"
-                >
-                  Pracownik
-                </button>
-             </div>
-          </div>
         </div>
 
         <p className="mt-8 text-center text-slate-400 text-[10px] font-bold uppercase tracking-widest">

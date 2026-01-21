@@ -6,6 +6,7 @@ import {
   Globe, MapPin, X, Save, DollarSign, RefreshCw, Filter
 } from 'lucide-react';
 import { LOCATIONS } from '../constants';
+import { supabase } from '../supabase';
 
 const AdminReports: React.FC = () => {
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
@@ -14,48 +15,78 @@ const AdminReports: React.FC = () => {
   const [reports, setReports] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Funkcja generująca mockowe raporty dla wybranej daty
-  const fetchReports = () => {
+  const fetchReports = async () => {
     setLoading(true);
-    
-    setTimeout(() => {
-      const mockReports = LOCATIONS.map(loc => {
-        const bSales = 1200 + Math.random() * 800;
-        const pSales = 800 + Math.random() * 600;
-        return {
-          id: Math.random().toString(36).substr(2, 9),
-          date: selectedDate,
-          location_id: loc.id,
-          location_name: loc.name,
-          user_email: `${loc.name.toLowerCase()}@rzepka.pl`,
-          bakery_sales: bSales,
-          bakery_loss: bSales * (0.02 + Math.random() * 0.05),
-          pastry_sales: pSales,
-          pastry_loss: pSales * (0.03 + Math.random() * 0.06),
-          verified: Math.random() > 0.3
-        };
-      });
+    try {
+      let query = supabase
+        .from('daily_reports')
+        .select(`
+          *,
+          profiles (email)
+        `)
+        .eq('date', selectedDate);
 
-      const filtered = viewScope === 'global' 
-        ? mockReports 
-        : mockReports.filter(r => r.location_id === viewScope);
+      if (viewScope !== 'global') {
+        query = query.eq('location_id', viewScope);
+      }
 
-      setReports(filtered);
+      const { data, error } = await query;
+
+      if (error) throw error;
+
+      const enrichedData = data.map(report => ({
+        ...report,
+        location_name: LOCATIONS.find(l => l.id === report.location_id)?.name || 'Nieznany',
+        user_email: report.profiles?.email || 'N/A'
+      }));
+
+      setReports(enrichedData);
+    } catch (err: any) {
+      console.error('Error fetching reports:', err);
+    } finally {
       setLoading(false);
-    }, 800);
+    }
   };
 
   useEffect(() => { fetchReports(); }, [selectedDate, viewScope]);
 
-  const handleUpdate = (e: React.FormEvent) => {
+  const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
-    setReports(prev => prev.map(r => r.id === editModal.id ? { ...editModal, verified: true } : r));
-    setEditModal(null);
+    try {
+      const { error } = await supabase
+        .from('daily_reports')
+        .update({
+          bakery_sales: editModal.bakery_sales,
+          bakery_loss: editModal.bakery_loss,
+          pastry_sales: editModal.pastry_sales,
+          pastry_loss: editModal.pastry_loss,
+          verified: true
+        })
+        .eq('id', editModal.id);
+
+      if (error) throw error;
+
+      setReports(prev => prev.map(r => r.id === editModal.id ? { ...editModal, verified: true } : r));
+      setEditModal(null);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Czy na pewno chcesz usunąć ten raport?')) return;
+    try {
+      const { error } = await supabase.from('daily_reports').delete().eq('id', id);
+      if (error) throw error;
+      setReports(prev => prev.filter(r => r.id !== id));
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   return (
     <div className="space-y-8 pb-20">
-      {/* Modal korekty (Mock) */}
+      {/* Modal korekty */}
       {editModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[100] flex items-center justify-center p-4">
           <div className="bg-white w-full max-w-2xl rounded-[3rem] shadow-2xl overflow-hidden animate-in zoom-in duration-200">
@@ -144,7 +175,7 @@ const AdminReports: React.FC = () => {
           <div className="absolute inset-0 bg-white/50 backdrop-blur-sm flex items-center justify-center z-10">
             <div className="flex flex-col items-center gap-4">
                <div className="w-12 h-12 border-4 border-slate-100 border-t-amber-500 rounded-full animate-spin"></div>
-               <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Synchronizacja danych...</p>
+               <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Pobieranie danych z bazy...</p>
             </div>
           </div>
         ) : null}
@@ -194,7 +225,7 @@ const AdminReports: React.FC = () => {
                   <td className="px-8 py-7 text-right">
                     <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all transform translate-x-2 group-hover:translate-x-0">
                       <button onClick={() => setEditModal(report)} className="p-2.5 bg-white border border-slate-200 text-slate-400 hover:text-amber-600 rounded-xl transition-all shadow-sm"><Edit2 size={16}/></button>
-                      <button className="p-2.5 bg-white border border-slate-200 text-slate-400 hover:text-rose-600 rounded-xl transition-all shadow-sm"><Trash2 size={16}/></button>
+                      <button onClick={() => handleDelete(report.id)} className="p-2.5 bg-white border border-slate-200 text-slate-400 hover:text-rose-600 rounded-xl transition-all shadow-sm"><Trash2 size={16}/></button>
                     </div>
                   </td>
                 </tr>
