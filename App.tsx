@@ -9,7 +9,9 @@ import HistoryView from './views/History';
 import AdminBudgets from './views/AdminBudgets';
 import AdminUsers from './views/AdminUsers';
 import AdminMessages from './views/AdminMessages';
-import AdminReports from './views/AdminReports';
+import AdminReportsSimple from './views/AdminReportsSimple';
+import AdminReportsAdvanced from './views/AdminReportsAdvanced';
+import AdminLocations from './views/AdminLocations';
 import Login from './views/Login';
 
 const App: React.FC = () => {
@@ -17,8 +19,6 @@ const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
-  // Mock login for demo purposes
-  // In real app, this would use Supabase Auth session
   useEffect(() => {
     const savedUser = localStorage.getItem('user_profile');
     if (savedUser) {
@@ -47,8 +47,10 @@ const App: React.FC = () => {
       case 'history': return <HistoryView user={user} />;
       case 'budgets': return <AdminBudgets />;
       case 'users': return <AdminUsers />;
+      case 'locations': return <AdminLocations />;
       case 'messages': return <AdminMessages user={user} />;
-      case 'reports': return <AdminReports />;
+      case 'reports-simple': return <AdminReportsSimple />;
+      case 'reports-advanced': return <AdminReportsAdvanced />;
       default: return <Dashboard user={user} />;
     }
   };
