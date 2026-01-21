@@ -1,17 +1,14 @@
 
 import { createClient } from '@supabase/supabase-js';
 
-// Adresy i klucze pobierane z env lub window.env
-const supabaseUrl = (window as any).env?.SUPABASE_URL || 'https://your-project.url.supabase.co';
-const supabaseAnonKey = (window as any).env?.SUPABASE_ANON_KEY || 'your-anon-key';
+// Twoje dane produkcyjne - wpisane bezpośrednio, aby uniknąć błędów z window.env
+const supabaseUrl = 'https://tymakcndlzhyfvmkhjkn.supabase.co';
+const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR5bWFrY25kbHpoeWZ2bWtoamtuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg5NzI5MjcsImV4cCI6MjA4NDU0ODkyN30.e2oOyJX2fK9cOcDBkszbmrVE7Mg-PRVZPYYHKopCZmY';
 
-// Flaga sprawdzająca czy URL jest poprawny
-export const isSupabaseConfigured = 
-  supabaseUrl !== 'https://your-project.url.supabase.co' && 
-  supabaseAnonKey !== 'your-anon-key';
+// Flaga gotowości systemu
+export const isSupabaseConfigured = true;
 
-if (!isSupabaseConfigured) {
-  console.error("KRYTYCZNY BŁĄD: Supabase nie został skonfigurowany. Zmień URL i Klucz Anonimowy w pliku supabase.ts lub ustawieniach środowiska.");
-}
-
+// Inicjalizacja klienta
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+console.log("🚀 System Rzepka: Zainicjalizowano połączenie z bazą:", supabaseUrl);
