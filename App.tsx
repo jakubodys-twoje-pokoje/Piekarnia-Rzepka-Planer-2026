@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { UserProfile, Role } from './types';
 import Sidebar from './components/Sidebar';
@@ -14,31 +13,78 @@ import AdminReportsAdvanced from './views/AdminReportsAdvanced';
 import AdminReports from './views/AdminReports';
 import AdminLocations from './views/AdminLocations';
 import Login from './views/Login';
+import { supabase } from './supabase';
+import { Loader2 } from 'lucide-react';
 
 const App: React.FC = () => {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [initializing, setInitializing] = useState(true);
 
   useEffect(() => {
-    const savedUser = localStorage.getItem('user_profile');
-    if (savedUser) {
-      setUser(JSON.parse(savedUser));
-    }
+    // Sprawdź czy jest aktywna sesja przy starcie
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        await fetchUserProfile(session.user.id);
+      }
+      setInitializing(false);
+    };
+
+    checkSession();
+
+    // Nasłuchuj zmian w sesji (logowanie/wylogowanie)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'SIGNED_IN' && session?.user) {
+        await fetchUserProfile(session.user.id);
+      } else if (event === 'SIGNED_OUT') {
+        setUser(null);
+        localStorage.removeItem('user_profile');
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
-  const handleLogin = (u: UserProfile) => {
-    setUser(u);
-    localStorage.setItem('user_profile', JSON.stringify(u));
+  const fetchUserProfile = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
+      
+      if (data) {
+        const profile: UserProfile = {
+          id: data.id,
+          email: data.email,
+          role: data.role as Role,
+          default_location_id: data.default_location_id,
+        };
+        setUser(profile);
+        localStorage.setItem('user_profile', JSON.stringify(profile));
+      }
+    } catch (err) {
+      console.error("Błąd pobierania profilu:", err);
+    }
   };
 
-  const handleLogout = () => {
-    setUser(null);
-    localStorage.removeItem('user_profile');
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
   };
+
+  if (initializing) {
+    return (
+      <div className="h-screen w-full flex flex-col items-center justify-center bg-slate-50 gap-4">
+        <Loader2 size={40} className="animate-spin text-amber-600" />
+        <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">Autoryzacja systemu...</p>
+      </div>
+    );
+  }
 
   if (!user) {
-    return <Login onLogin={handleLogin} />;
+    return <Login onLogin={(u) => setUser(u)} />;
   }
 
   const renderContent = () => {
