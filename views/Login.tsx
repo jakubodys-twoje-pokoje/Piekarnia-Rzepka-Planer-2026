@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { UserProfile } from '../types';
+import { UserProfile, Role } from '../types';
 import { LogIn, Shield, User, AlertCircle } from 'lucide-react';
 import { supabase } from '../supabase';
 
@@ -28,23 +28,45 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
       if (authError) throw authError;
 
       if (authData.user) {
-        const { data: profileData, error: profileError } = await supabase
+        // Spróbuj pobrać profil
+        let { data: profileData, error: profileError } = await supabase
           .from('profiles')
           .select('*')
           .eq('id', authData.user.id)
           .single();
 
-        if (profileError) throw profileError;
+        // Jeśli profil nie istnieje (częsty błąd przy ręcznym tworzeniu userów w Auth)
+        if (profileError && profileError.code === 'PGRST116') {
+          console.log("Profil nie znaleziony, tworzę nowy...");
+          const { data: newProfile, error: createError } = await supabase
+            .from('profiles')
+            .insert([{
+              id: authData.user.id,
+              email: authData.user.email,
+              role: 'user', // Domyślna rola
+              default_location_id: '1'
+            }])
+            .select()
+            .single();
+            
+          if (createError) throw createError;
+          profileData = newProfile;
+        } else if (profileError) {
+          throw profileError;
+        }
 
-        onLogin({
-          id: profileData.id,
-          email: profileData.email,
-          role: profileData.role,
-          default_location_id: profileData.default_location_id,
-        });
+        if (profileData) {
+          onLogin({
+            id: profileData.id,
+            email: profileData.email,
+            role: profileData.role as Role,
+            default_location_id: profileData.default_location_id,
+          });
+        }
       }
     } catch (err: any) {
-      setError(err.message || 'Błąd logowania. Sprawdź dane.');
+      console.error("Login error details:", err);
+      setError(err.message || 'Błąd logowania. Sprawdź połączenie z bazą.');
     } finally {
       setLoading(false);
     }
@@ -120,7 +142,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
         </div>
 
         <p className="mt-8 text-center text-slate-400 text-[10px] font-bold uppercase tracking-widest">
-          &copy; 2026 Piekarnia Rzepka &middot; V2.0.4
+          &copy; 2026 Piekarnia Rzepka &middot; V2.0.5
         </p>
       </div>
     </div>
