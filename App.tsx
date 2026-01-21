@@ -11,6 +11,7 @@ import AdminUsers from './views/AdminUsers';
 import AdminMessages from './views/AdminMessages';
 import AdminReportsSimple from './views/AdminReportsSimple';
 import AdminReportsAdvanced from './views/AdminReportsAdvanced';
+import AdminReports from './views/AdminReports';
 import AdminLocations from './views/AdminLocations';
 import Login from './views/Login';
 
@@ -51,6 +52,7 @@ const App: React.FC = () => {
       case 'messages': return <AdminMessages user={user} />;
       case 'reports-simple': return <AdminReportsSimple />;
       case 'reports-advanced': return <AdminReportsAdvanced />;
+      case 'reports-data': return <AdminReports />;
       default: return <Dashboard user={user} />;
     }
   };

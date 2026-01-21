@@ -9,7 +9,8 @@ import {
   MessageSquare,
   TrendingUp,
   BarChart3,
-  MapPin
+  MapPin,
+  Database
 } from 'lucide-react';
 
 export const LOCATIONS = [
@@ -33,6 +34,7 @@ export const MENU_ITEMS = [
   { id: 'history', label: 'Historia', icon: <History size={20} />, roles: ['user'] },
   { id: 'reports-simple', label: 'Raport Szybki', icon: <TrendingUp size={20} />, roles: ['admin'] },
   { id: 'reports-advanced', label: 'Analityka PRO', icon: <BarChart3 size={20} />, roles: ['admin'] },
+  { id: 'reports-data', label: 'Baza Raportów', icon: <Database size={20} />, roles: ['admin'] },
   { id: 'budgets', label: 'Budżety', icon: <TargetIcon size={20} />, roles: ['admin'] },
   { id: 'locations', label: 'Punkty', icon: <MapPin size={20} />, roles: ['admin'] },
   { id: 'users', label: 'Użytkownicy', icon: <UsersIcon size={20} />, roles: ['admin'] },
