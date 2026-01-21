@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { UserProfile } from '../types';
 import { LOCATIONS } from '../constants';
-import { Save, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Save, AlertCircle, CheckCircle2, Calendar as CalendarIcon } from 'lucide-react';
 
 interface DataEntryProps {
   user: UserProfile;
@@ -29,10 +29,9 @@ const DataEntry: React.FC<DataEntryProps> = ({ user }) => {
     e.preventDefault();
     setStatus('saving');
     
-    // Simulate API call
+    // Symulacja zapisu do Supabase
     setTimeout(() => {
       setStatus('success');
-      // Reset form sales but keep date/location
       setFormData(prev => ({
         ...prev,
         bakerySales: '',
@@ -45,152 +44,172 @@ const DataEntry: React.FC<DataEntryProps> = ({ user }) => {
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900">Wprowadź Raport Dzienny</h1>
-          <p className="text-slate-500">Uzupełnij dane sprzedażowe dla wybranego punktu.</p>
-        </div>
+    <div className="max-w-5xl mx-auto space-y-6 pb-20">
+      <div className="flex flex-col gap-2 mb-6">
+        <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Raport Dzienny</h1>
+        <p className="text-lg text-slate-500 font-medium">Wprowadź dane sprzedaży i strat z kasy.</p>
       </div>
 
-      <form onSubmit={handleSubmit} className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-        <div className="p-6 md:p-8 space-y-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6 bg-slate-50 rounded-xl border border-slate-100">
-            <div className="space-y-2">
-              <label className="text-sm font-bold text-slate-700">Data raportu</label>
-              <input
-                type="date"
-                name="date"
-                value={formData.date}
-                onChange={handleInputChange}
-                className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-none"
-                required
-              />
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Sekcja Wyboru: Data i Punkt */}
+        <div className="bg-white p-6 rounded-3xl border-2 border-slate-100 shadow-sm grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="space-y-3">
+            <label className="flex items-center gap-2 text-sm font-bold text-slate-700 uppercase tracking-wider ml-1">
+              <CalendarIcon size={16} className="text-amber-600" />
+              Data Raportu
+            </label>
+            <input
+              type="date"
+              name="date"
+              value={formData.date}
+              onChange={handleInputChange}
+              className="w-full px-6 py-4 bg-slate-50 border-2 border-slate-100 rounded-2xl focus:border-amber-500 focus:bg-white outline-none transition-all text-xl font-bold text-slate-800"
+              required
+            />
+            <p className="text-xs text-slate-400 ml-1">Obsługuje również niedziele pracujące.</p>
+          </div>
+          <div className="space-y-3">
+            <label className="text-sm font-bold text-slate-700 uppercase tracking-wider ml-1">Punkt Sprzedaży</label>
+            <select
+              name="locationId"
+              value={formData.locationId}
+              onChange={handleInputChange}
+              className="w-full px-6 py-4 bg-slate-50 border-2 border-slate-100 rounded-2xl focus:border-amber-500 focus:bg-white outline-none transition-all text-xl font-bold text-slate-800 appearance-none"
+              required
+            >
+              {LOCATIONS.map(loc => (
+                <option key={loc.id} value={loc.id}>{loc.name}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {/* Dane Finansowe - Układ dwukolumnowy na tablecie */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Piekarnia */}
+          <div className="bg-white p-8 rounded-3xl border-2 border-slate-100 shadow-sm space-y-8">
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 bg-amber-100 text-amber-700 rounded-2xl flex items-center justify-center text-2xl shadow-inner">
+                🍞
+              </div>
+              <div>
+                <h3 className="text-xl font-black text-slate-800 uppercase tracking-tight">Piekarnia</h3>
+                <p className="text-sm text-slate-400 font-bold">Pieczywo i chleby</p>
+              </div>
             </div>
-            <div className="space-y-2">
-              <label className="text-sm font-bold text-slate-700">Punkt sprzedaży</label>
-              <select
-                name="locationId"
-                value={formData.locationId}
-                onChange={handleInputChange}
-                className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-none"
-                required
-              >
-                {LOCATIONS.map(loc => (
-                  <option key={loc.id} value={loc.id}>{loc.name}</option>
-                ))}
-              </select>
+
+            <div className="space-y-6">
+              <div className="space-y-3">
+                <label className="text-sm font-bold text-slate-500 uppercase tracking-widest ml-1">Sprzedaż (PLN)</label>
+                <div className="relative">
+                  <input
+                    type="number"
+                    step="0.01"
+                    inputMode="decimal"
+                    name="bakerySales"
+                    placeholder="0,00"
+                    value={formData.bakerySales}
+                    onChange={handleInputChange}
+                    className="w-full pl-6 pr-14 py-5 bg-slate-50 border-2 border-slate-100 rounded-2xl text-2xl font-black text-emerald-600 focus:border-emerald-500 focus:bg-white outline-none transition-all placeholder:text-slate-200"
+                    required
+                  />
+                  <span className="absolute right-6 top-1/2 -translate-y-1/2 font-bold text-slate-300">zł</span>
+                </div>
+              </div>
+              <div className="space-y-3">
+                <label className="text-sm font-bold text-slate-500 uppercase tracking-widest ml-1">Strata (PLN)</label>
+                <div className="relative">
+                  <input
+                    type="number"
+                    step="0.01"
+                    inputMode="decimal"
+                    name="bakeryLoss"
+                    placeholder="0,00"
+                    value={formData.bakeryLoss}
+                    onChange={handleInputChange}
+                    className="w-full pl-6 pr-14 py-5 bg-slate-50 border-2 border-slate-100 rounded-2xl text-2xl font-black text-rose-600 focus:border-rose-500 focus:bg-white outline-none transition-all placeholder:text-slate-200"
+                    required
+                  />
+                  <span className="absolute right-6 top-1/2 -translate-y-1/2 font-bold text-slate-300">zł</span>
+                </div>
+              </div>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
-            {/* Bakery Section */}
-            <div className="space-y-6">
-              <div className="flex items-center gap-3 border-b border-slate-100 pb-3">
-                <div className="w-8 h-8 bg-amber-100 text-amber-700 rounded-lg flex items-center justify-center">
-                  🍞
-                </div>
-                <h3 className="font-bold text-slate-800">Sekcja: Piekarnia</h3>
+          {/* Cukiernia */}
+          <div className="bg-white p-8 rounded-3xl border-2 border-slate-100 shadow-sm space-y-8">
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 bg-pink-100 text-pink-700 rounded-2xl flex items-center justify-center text-2xl shadow-inner">
+                🍰
               </div>
-              
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-slate-600">Sprzedaż (PLN)</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    name="bakerySales"
-                    placeholder="0.00"
-                    value={formData.bakerySales}
-                    onChange={handleInputChange}
-                    className="w-full px-4 py-3 bg-white border border-slate-200 rounded-lg text-lg font-semibold focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-none"
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-slate-600">Strata (PLN)</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    name="bakeryLoss"
-                    placeholder="0.00"
-                    value={formData.bakeryLoss}
-                    onChange={handleInputChange}
-                    className="w-full px-4 py-3 bg-white border border-slate-200 rounded-lg text-lg font-semibold focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 outline-none"
-                    required
-                  />
-                </div>
+              <div>
+                <h3 className="text-xl font-black text-slate-800 uppercase tracking-tight">Cukiernia</h3>
+                <p className="text-sm text-slate-400 font-bold">Wyroby słodkie</p>
               </div>
             </div>
 
-            {/* Pastry Section */}
             <div className="space-y-6">
-              <div className="flex items-center gap-3 border-b border-slate-100 pb-3">
-                <div className="w-8 h-8 bg-emerald-100 text-emerald-700 rounded-lg flex items-center justify-center">
-                  🍰
-                </div>
-                <h3 className="font-bold text-slate-800">Sekcja: Cukiernia</h3>
-              </div>
-
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-slate-600">Sprzedaż (PLN)</label>
+              <div className="space-y-3">
+                <label className="text-sm font-bold text-slate-500 uppercase tracking-widest ml-1">Sprzedaż (PLN)</label>
+                <div className="relative">
                   <input
                     type="number"
                     step="0.01"
-                    min="0"
+                    inputMode="decimal"
                     name="pastrySales"
-                    placeholder="0.00"
+                    placeholder="0,00"
                     value={formData.pastrySales}
                     onChange={handleInputChange}
-                    className="w-full px-4 py-3 bg-white border border-slate-200 rounded-lg text-lg font-semibold focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none"
+                    className="w-full pl-6 pr-14 py-5 bg-slate-50 border-2 border-slate-100 rounded-2xl text-2xl font-black text-emerald-600 focus:border-emerald-500 focus:bg-white outline-none transition-all placeholder:text-slate-200"
                     required
                   />
+                  <span className="absolute right-6 top-1/2 -translate-y-1/2 font-bold text-slate-300">zł</span>
                 </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-slate-600">Strata (PLN)</label>
+              </div>
+              <div className="space-y-3">
+                <label className="text-sm font-bold text-slate-500 uppercase tracking-widest ml-1">Strata (PLN)</label>
+                <div className="relative">
                   <input
                     type="number"
                     step="0.01"
-                    min="0"
+                    inputMode="decimal"
                     name="pastryLoss"
-                    placeholder="0.00"
+                    placeholder="0,00"
                     value={formData.pastryLoss}
                     onChange={handleInputChange}
-                    className="w-full px-4 py-3 bg-white border border-slate-200 rounded-lg text-lg font-semibold focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 outline-none"
+                    className="w-full pl-6 pr-14 py-5 bg-slate-50 border-2 border-slate-100 rounded-2xl text-2xl font-black text-rose-600 focus:border-rose-500 focus:bg-white outline-none transition-all placeholder:text-slate-200"
                     required
                   />
+                  <span className="absolute right-6 top-1/2 -translate-y-1/2 font-bold text-slate-300">zł</span>
                 </div>
               </div>
             </div>
           </div>
         </div>
 
-        <div className="bg-slate-50 p-6 border-t border-slate-200 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            {status === 'success' && (
-              <span className="flex items-center gap-1.5 text-emerald-600 text-sm font-bold bg-emerald-50 px-3 py-1 rounded-full">
-                <CheckCircle2 size={16} /> Dane zapisane pomyślnie
-              </span>
-            )}
-            {status === 'error' && (
-              <span className="flex items-center gap-1.5 text-rose-600 text-sm font-bold bg-rose-50 px-3 py-1 rounded-full">
-                <AlertCircle size={16} /> Wystąpił błąd przy zapisie
-              </span>
-            )}
+        {/* Pasek statusu i przycisk - stały na dole na tabletach dla łatwego dostępu */}
+        <div className="fixed bottom-0 left-0 right-0 p-4 bg-white/80 backdrop-blur-lg border-t border-slate-200 md:relative md:bg-transparent md:border-none md:p-0 md:pt-4">
+          <div className="max-w-5xl mx-auto flex items-center justify-between gap-4">
+            <div className="hidden sm:block">
+              {status === 'success' && (
+                <div className="flex items-center gap-2 text-emerald-700 font-bold animate-bounce">
+                  <CheckCircle2 size={24} /> Raport zapisany!
+                </div>
+              )}
+            </div>
+            <button
+              type="submit"
+              disabled={status === 'saving'}
+              className={`flex-1 md:flex-none flex items-center justify-center gap-3 px-12 py-6 rounded-2xl font-black text-xl shadow-2xl transition-all active:scale-95 ${
+                status === 'saving' 
+                  ? 'bg-slate-200 text-slate-400' 
+                  : 'bg-amber-600 text-white hover:bg-amber-700 shadow-amber-600/30'
+              }`}
+            >
+              <Save size={24} />
+              {status === 'saving' ? 'PRZETWARZANIE...' : 'ZAPISZ RAPORT'}
+            </button>
           </div>
-          <button
-            type="submit"
-            disabled={status === 'saving'}
-            className={`flex items-center gap-2 px-8 py-3 rounded-xl font-bold transition-all shadow-lg hover:shadow-xl active:scale-95 ${
-              status === 'saving' ? 'bg-slate-300 text-slate-500 cursor-not-allowed' : 'bg-amber-600 text-white hover:bg-amber-700 shadow-amber-600/20'
-            }`}
-          >
-            <Save size={20} />
-            {status === 'saving' ? 'Zapisywanie...' : 'Zapisz raport'}
-          </button>
         </div>
       </form>
     </div>

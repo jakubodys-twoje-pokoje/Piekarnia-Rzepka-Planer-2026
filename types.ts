@@ -1,5 +1,6 @@
 
 export type Role = 'admin' | 'user';
+export type LossTargetType = 'percent' | 'amount';
 
 export interface Location {
   id: string;
@@ -14,40 +15,25 @@ export interface UserProfile {
   name?: string;
 }
 
-export interface DailyReport {
-  id: string;
-  date: string;
-  location_id: string;
-  user_id: string;
-  bakery_sales: number;
-  bakery_loss: number;
-  pastry_sales: number;
-  pastry_loss: number;
-  created_at: string;
-}
-
 export interface Target {
   id: string;
   location_id: string;
   month: number;
   year: number;
   bakery_daily_target: number;
-  bakery_monthly_target: number;
+  bakery_loss_target: number;
+  bakery_loss_type: LossTargetType;
   pastry_daily_target: number;
-  pastry_monthly_target: number;
+  pastry_loss_target: number;
+  pastry_loss_type: LossTargetType;
 }
 
 export interface Message {
   id: string;
   sender_id: string;
-  recipient_location_id: string | null; // null for 'All'
+  recipient_location_id: string | null;
   content: string;
   created_at: string;
-  sender_name?: string;
-}
-
-export interface DashboardStats {
-  totalDailySales: number;
-  totalMonthlyPerformance: number;
-  topLocation: string;
+  is_read: boolean;
+  is_urgent?: boolean;
 }
