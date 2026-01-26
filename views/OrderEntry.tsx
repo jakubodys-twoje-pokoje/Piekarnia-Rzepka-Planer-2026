@@ -68,7 +68,8 @@ const OrderEntry: React.FC<{ user: UserProfile }> = ({ user }) => {
   };
 
   const handlePreSubmit = () => {
-    const itemsToOrder = Object.entries(quantities).filter(([_, qty]) => qty > 0);
+    // Fix: Explicitly cast qty to number as Object.entries value might be inferred as unknown
+    const itemsToOrder = Object.entries(quantities).filter(([_, qty]) => (qty as number) > 0);
     if (itemsToOrder.length === 0) return alert('Wpisz ilości produktów przed wysłaniem.');
     if (!selectedLocation) return alert('Wybierz punkt sprzedaży.');
     setShowConfirm(true);
@@ -88,12 +89,13 @@ const OrderEntry: React.FC<{ user: UserProfile }> = ({ user }) => {
 
       if (orderErr) throw orderErr;
 
+      // Fix: Explicitly cast qty to number as Object.entries value might be inferred as unknown
       const itemsPayload = Object.entries(quantities)
-        .filter(([_, qty]) => qty > 0)
+        .filter(([_, qty]) => (qty as number) > 0)
         .map(([pid, qty]) => ({
           order_id: order.id,
           product_id: pid,
-          quantity: qty
+          quantity: qty as number
         }));
 
       const { error: itemsErr } = await supabase.from('order_items').insert(itemsPayload);
@@ -182,7 +184,8 @@ const OrderEntry: React.FC<{ user: UserProfile }> = ({ user }) => {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-              {items.map(item => (
+              {/* Fix: Explicitly cast items to any[] as Object.entries value might be inferred as unknown */}
+              {(items as any[]).map(item => (
                 <div key={item.id} className="bg-white p-4 rounded-[1.8rem] border border-slate-100 hover:border-amber-500/30 transition-all flex items-center justify-between group">
                   <div className="flex items-center gap-3 overflow-hidden">
                     <div className="w-9 h-9 bg-slate-50 rounded-lg flex items-center justify-center font-black text-slate-400 text-[10px] shrink-0">{item.code || '•'}</div>

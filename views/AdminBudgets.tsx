@@ -1,9 +1,10 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { 
-  Save, Target, TrendingDown, Loader2, CheckCircle2, 
-  AlertCircle, ChevronLeft, ChevronRight, LayoutGrid, 
-  CalendarDays, MapPin, Landmark, Banknote
+  Save, Loader2, CheckCircle2, 
+  AlertCircle, LayoutGrid, 
+  MapPin, Landmark, Banknote,
+  ArrowRightLeft
 } from 'lucide-react';
 import { supabase } from '../supabase';
 import { MONTHS } from '../constants';
@@ -112,29 +113,25 @@ const AdminBudgets: React.FC = () => {
   if (loading) return (
     <div className="flex flex-col items-center justify-center p-32 gap-6">
       <Loader2 size={64} className="animate-spin text-amber-500" />
-      <div className="text-center">
-        <h2 className="text-xl font-black text-slate-900 uppercase">Inicjalizacja Planera</h2>
-        <p className="text-xs font-bold text-slate-400 mt-2">Budowanie macierzy tygodniowej...</p>
-      </div>
+      <h2 className="text-xl font-black text-slate-900 uppercase">Ładowanie Macierzy...</h2>
     </div>
   );
 
   return (
-    <div className="space-y-6 pb-24">
-      {/* Control Header - Fixed overflow and wrapping */}
-      <div className="bg-white p-6 rounded-[2.5rem] border border-slate-200 shadow-sm overflow-hidden">
+    <div className="space-y-6 pb-24 max-w-[1600px] mx-auto">
+      {/* NAGŁÓWEK KONTROLNY */}
+      <div className="bg-white p-8 rounded-[3rem] border border-slate-200 shadow-sm overflow-hidden">
         <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-6">
           <div className="shrink-0">
             <div className="flex items-center gap-2 text-amber-600 mb-1">
               <Landmark size={14} />
-              <span className="text-[10px] font-black uppercase tracking-[0.2em]">Revenue & Loss Planner</span>
+              <span className="text-[10px] font-black uppercase tracking-[0.2em]">BUDŻET I CELE</span>
             </div>
-            <h1 className="text-2xl font-black text-slate-900 tracking-tighter uppercase leading-none">Budżetowanie Sieci</h1>
+            <h1 className="text-3xl font-black text-slate-900 tracking-tighter uppercase leading-none">Planowanie Sieci</h1>
           </div>
 
-          <div className="flex flex-wrap md:flex-nowrap items-center gap-3 w-full xl:w-auto justify-start xl:justify-end">
-            {/* Quarter Selector */}
-            <div className="bg-slate-100 p-1 rounded-2xl flex gap-0.5 shrink-0">
+          <div className="flex flex-wrap items-center gap-4">
+            <div className="bg-slate-100 p-1.5 rounded-2xl flex gap-1">
               {QUARTERS.map(q => (
                 <button
                   key={q.id}
@@ -142,7 +139,7 @@ const AdminBudgets: React.FC = () => {
                     setSelectedQuarter(q);
                     setSelectedMonthIdx(q.months[0]);
                   }}
-                  className={`px-5 py-2.5 rounded-xl font-black text-[11px] transition-all ${
+                  className={`px-6 py-2.5 rounded-xl font-black text-[11px] transition-all uppercase ${
                     selectedQuarter.id === q.id ? 'bg-white text-slate-900 shadow-md' : 'text-slate-400 hover:text-slate-600'
                   }`}
                 >
@@ -151,13 +148,12 @@ const AdminBudgets: React.FC = () => {
               ))}
             </div>
 
-            {/* Month Selector inside Quarter - Fixed Wrapping */}
-            <div className="bg-slate-900 text-white p-1 rounded-2xl flex gap-1 flex-nowrap shrink-0">
+            <div className="bg-slate-900 text-white p-1.5 rounded-2xl flex gap-1">
               {selectedQuarter.months.map(mIdx => (
                 <button
                   key={mIdx}
                   onClick={() => setSelectedMonthIdx(mIdx)}
-                  className={`px-4 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-wider transition-all whitespace-nowrap ${
+                  className={`px-4 py-2.5 rounded-xl font-black text-[10px] uppercase transition-all ${
                     selectedMonthIdx === mIdx ? 'bg-amber-500 text-white shadow-lg' : 'text-white/40 hover:text-white'
                   }`}
                 >
@@ -166,161 +162,120 @@ const AdminBudgets: React.FC = () => {
               ))}
             </div>
 
-            {/* Save Button - Prevent Wrap */}
             <button 
               onClick={handleSave}
               disabled={saving}
-              className={`flex items-center gap-3 px-8 py-3.5 rounded-2xl font-black text-[11px] uppercase tracking-widest shadow-xl transition-all active:scale-95 disabled:opacity-50 shrink-0 whitespace-nowrap ${
-                saveStatus === 'success' ? 'bg-emerald-600 text-white' : 
-                saveStatus === 'error' ? 'bg-rose-600 text-white' : 'bg-slate-900 text-white hover:bg-amber-600'
+              className={`flex items-center gap-3 px-10 py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl transition-all active:scale-95 disabled:opacity-50 ${
+                saveStatus === 'success' ? 'bg-emerald-600 text-white' : 'bg-slate-900 text-white hover:bg-amber-600'
               }`}
             >
-              {saving ? <Loader2 size={16} className="animate-spin" /> : (saveStatus === 'success' ? <CheckCircle2 size={16}/> : <Save size={16}/>)}
-              {saving ? 'Zapis...' : (saveStatus === 'success' ? 'Gotowe' : 'Zapisz Plan')}
+              {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16}/>}
+              Zapisz Cele
             </button>
           </div>
         </div>
       </div>
 
-      {/* Main Matrix Table */}
-      <div className="bg-white rounded-[3rem] border border-slate-200 shadow-sm overflow-hidden overflow-x-auto custom-scrollbar">
-        <table className="w-full border-collapse">
-          <thead>
-            <tr className="bg-slate-900 text-white">
-              <th className="sticky left-0 z-20 bg-slate-900 px-10 py-8 text-left border-r border-white/10 min-w-[280px]">
-                <div className="flex items-center gap-3">
-                   <MapPin size={20} className="text-amber-500" />
-                   <span className="text-[11px] font-black uppercase tracking-[0.2em]">Punkt Sprzedaży</span>
-                </div>
-              </th>
-              {activeWeeks.map(w => (
-                <th key={w} className="px-6 py-8 text-center min-w-[220px] border-r border-white/10">
-                  <p className="text-[10px] font-black uppercase tracking-[0.3em] text-amber-500/80 mb-1">Tydzień ISO</p>
-                  <p className="text-2xl font-black tracking-tighter">{w}</p>
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
-            {locations.map(loc => (
-              <tr key={loc.id} className="hover:bg-slate-50/50 transition-colors group">
-                {/* Location Name - High Contrast */}
-                <td className="sticky left-0 z-10 bg-white group-hover:bg-slate-50 px-10 py-8 border-r border-slate-100 shadow-[4px_0_15px_-5px_rgba(0,0,0,0.05)]">
-                  <h3 className="text-base font-black text-slate-900 uppercase tracking-tight leading-none mb-1.5">{loc.name}</h3>
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest truncate max-w-[200px]">{loc.address}</p>
-                </td>
+      {/* WSKAŹNIK PRZEWIJANIA GÓRNEGO */}
+      <div className="bg-slate-50 px-8 py-2 rounded-full border border-slate-100 flex items-center justify-center gap-4 text-[9px] font-black text-slate-400 uppercase tracking-widest animate-pulse">
+        <ArrowRightLeft size={14} className="text-amber-500" />
+        Przesuń tabelę w poziomie, aby zobaczyć wszystkie tygodnie
+        <ArrowRightLeft size={14} className="text-amber-500" />
+      </div>
 
-                {/* Week Cells - Improved Font Sizes */}
-                {activeWeeks.map(w => {
-                  const key = `${loc.id}-${w}`;
-                  const data = targets[key] || {};
-                  
-                  return (
-                    <td key={w} className="p-4 border-r border-slate-100 align-top">
-                      <div className="space-y-4">
-                        {/* Bakery Section */}
-                        <div className="space-y-1.5">
-                          <div className="flex items-center justify-between px-1">
-                            <p className="text-[10px] font-black text-amber-600 uppercase tracking-widest flex items-center gap-1.5">
-                              <Banknote size={10}/> Piekarnia
-                            </p>
-                          </div>
-                          <div className="bg-amber-50/50 p-3 rounded-[1.5rem] border border-amber-100 space-y-3">
-                            <div>
-                              <p className="text-[9px] font-black text-slate-400 uppercase tracking-wider mb-1 ml-0.5">Plan Sprzedaży</p>
-                              <div className="flex items-center gap-1.5 bg-white/80 px-3 py-2 rounded-xl border border-amber-200/50">
+      {/* GŁÓWNA TABELA - ULEPSZONY SCROLL */}
+      <div className="bg-white rounded-[3.5rem] border border-slate-200 shadow-sm overflow-hidden">
+        <div className="overflow-x-auto custom-scrollbar-heavy p-1">
+          <table className="w-full border-collapse">
+            <thead>
+              <tr className="bg-slate-900 text-white">
+                <th className="sticky left-0 z-30 bg-slate-900 px-10 py-10 text-left border-r border-white/10 min-w-[300px]">
+                  <div className="flex items-center gap-3">
+                     <MapPin size={20} className="text-amber-500" />
+                     <span className="text-[11px] font-black uppercase tracking-[0.2em]">Lokalizacja</span>
+                  </div>
+                </th>
+                {activeWeeks.map(w => (
+                  <th key={w} className="px-6 py-10 text-center min-w-[240px] border-r border-white/10">
+                    <p className="text-[9px] font-black uppercase tracking-[0.4em] text-amber-500/60 mb-1">Tydzień ISO</p>
+                    <p className="text-3xl font-black tracking-tighter">{w}</p>
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {locations.map(loc => (
+                <tr key={loc.id} className="hover:bg-slate-50/80 transition-colors group">
+                  <td className="sticky left-0 z-20 bg-white group-hover:bg-slate-50 px-10 py-10 border-r border-slate-100 shadow-[10px_0_20px_-10px_rgba(0,0,0,0.05)]">
+                    <h3 className="text-lg font-black text-slate-900 uppercase tracking-tight leading-none mb-1.5">{loc.name}</h3>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{loc.address}</p>
+                  </td>
+
+                  {activeWeeks.map(w => {
+                    const key = `${loc.id}-${w}`;
+                    const data = targets[key] || {};
+                    return (
+                      <td key={w} className="p-6 border-r border-slate-100">
+                        <div className="space-y-6">
+                          <div className="bg-amber-50/50 p-4 rounded-3xl border border-amber-100 space-y-4 shadow-inner">
+                            <p className="text-[9px] font-black text-amber-700 uppercase tracking-widest flex items-center gap-2"><Banknote size={12}/> Piekarnia</p>
+                            <div className="space-y-3">
+                              <div>
+                                <label className="text-[8px] font-black text-slate-400 uppercase tracking-wider mb-1 block ml-1">Plan Sprzedaży</label>
                                 <input 
                                   type="number"
                                   value={data.bakery_daily_target || ''}
                                   onChange={e => handleUpdate(loc.id, w, 'bakery_daily_target', e.target.value)}
-                                  placeholder="0"
-                                  className="w-full bg-transparent font-black text-sm text-slate-900 outline-none p-0 border-none focus:ring-0"
+                                  className="w-full bg-white px-4 py-3 rounded-xl border border-amber-200 font-black text-sm text-slate-900 outline-none focus:ring-2 focus:ring-amber-500/20"
+                                  placeholder="0.00"
                                 />
-                                <span className="text-[10px] font-black text-slate-300 uppercase">zł</span>
                               </div>
-                            </div>
-                            <div>
-                              <p className="text-[9px] font-black text-rose-400 uppercase tracking-wider mb-1 ml-0.5">Plan Straty</p>
-                              <div className="flex items-center gap-1.5 bg-white/80 px-3 py-2 rounded-xl border border-rose-200/50">
+                              <div>
+                                <label className="text-[8px] font-black text-rose-400 uppercase tracking-wider mb-1 block ml-1">Plan Straty</label>
                                 <input 
                                   type="number"
                                   value={data.bakery_loss_target || ''}
                                   onChange={e => handleUpdate(loc.id, w, 'bakery_loss_target', e.target.value)}
-                                  placeholder="0"
-                                  className="w-full bg-transparent font-black text-sm text-rose-600 outline-none p-0 border-none focus:ring-0"
+                                  className="w-full bg-white px-4 py-3 rounded-xl border border-rose-200 font-black text-sm text-rose-600 outline-none focus:ring-2 focus:ring-rose-500/20"
+                                  placeholder="0.00"
                                 />
-                                <span className="text-[10px] font-black text-slate-300 uppercase">zł</span>
                               </div>
                             </div>
                           </div>
-                        </div>
 
-                        {/* Pastry Section */}
-                        <div className="space-y-1.5">
-                          <div className="flex items-center justify-between px-1">
-                            <p className="text-[10px] font-black text-pink-600 uppercase tracking-widest flex items-center gap-1.5">
-                              <Banknote size={10}/> Cukiernia
-                            </p>
-                          </div>
-                          <div className="bg-pink-50/50 p-3 rounded-[1.5rem] border border-pink-100 space-y-3">
-                            <div>
-                              <p className="text-[9px] font-black text-slate-400 uppercase tracking-wider mb-1 ml-0.5">Plan Sprzedaży</p>
-                              <div className="flex items-center gap-1.5 bg-white/80 px-3 py-2 rounded-xl border border-pink-200/50">
+                          <div className="bg-pink-50/50 p-4 rounded-3xl border border-pink-100 space-y-4 shadow-inner">
+                            <p className="text-[9px] font-black text-pink-700 uppercase tracking-widest flex items-center gap-2"><Banknote size={12}/> Cukiernia</p>
+                            <div className="space-y-3">
+                              <div>
+                                <label className="text-[8px] font-black text-slate-400 uppercase tracking-wider mb-1 block ml-1">Plan Sprzedaży</label>
                                 <input 
                                   type="number"
                                   value={data.pastry_daily_target || ''}
                                   onChange={e => handleUpdate(loc.id, w, 'pastry_daily_target', e.target.value)}
-                                  placeholder="0"
-                                  className="w-full bg-transparent font-black text-sm text-slate-900 outline-none p-0 border-none focus:ring-0"
+                                  className="w-full bg-white px-4 py-3 rounded-xl border border-pink-200 font-black text-sm text-slate-900 outline-none focus:ring-2 focus:ring-pink-500/20"
+                                  placeholder="0.00"
                                 />
-                                <span className="text-[10px] font-black text-slate-300 uppercase">zł</span>
                               </div>
-                            </div>
-                            <div>
-                              <p className="text-[9px] font-black text-rose-400 uppercase tracking-wider mb-1 ml-0.5">Plan Straty</p>
-                              <div className="flex items-center gap-1.5 bg-white/80 px-3 py-2 rounded-xl border border-rose-200/50">
+                              <div>
+                                <label className="text-[8px] font-black text-rose-400 uppercase tracking-wider mb-1 block ml-1">Plan Straty</label>
                                 <input 
                                   type="number"
                                   value={data.pastry_loss_target || ''}
                                   onChange={e => handleUpdate(loc.id, w, 'pastry_loss_target', e.target.value)}
-                                  placeholder="0"
-                                  className="w-full bg-transparent font-black text-sm text-rose-600 outline-none p-0 border-none focus:ring-0"
+                                  className="w-full bg-white px-4 py-3 rounded-xl border border-rose-200 font-black text-sm text-rose-600 outline-none focus:ring-2 focus:ring-rose-500/20"
+                                  placeholder="0.00"
                                 />
-                                <span className="text-[10px] font-black text-slate-300 uppercase">zł</span>
                               </div>
                             </div>
                           </div>
                         </div>
-                      </div>
-                    </td>
-                  );
-                })}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-
-        {locations.length === 0 && (
-          <div className="py-24 flex flex-col items-center justify-center gap-4">
-            <LayoutGrid size={56} className="text-slate-100" />
-            <p className="text-xs font-black text-slate-300 uppercase tracking-[0.4em]">Brak aktywnych lokalizacji</p>
-          </div>
-        )}
-      </div>
-
-      {/* Enhanced Legend */}
-      <div className="flex flex-wrap items-center gap-8 px-8 py-4 bg-white/50 rounded-3xl border border-slate-100">
-        <div className="flex items-center gap-3">
-           <div className="w-4 h-4 rounded-lg bg-amber-500 shadow-lg shadow-amber-500/20"></div>
-           <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Planowanie Piekarnia</span>
-        </div>
-        <div className="flex items-center gap-3">
-           <div className="w-4 h-4 rounded-lg bg-pink-500 shadow-lg shadow-pink-500/20"></div>
-           <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Planowanie Cukiernia</span>
-        </div>
-        <div className="flex items-center gap-3 text-slate-400 ml-auto">
-           <AlertCircle size={16} />
-           <span className="text-[10px] font-bold uppercase tracking-widest">Wszystkie cele budżetowe definiowane są kwotowo (PLN)</span>
+                      </td>
+                    );
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>

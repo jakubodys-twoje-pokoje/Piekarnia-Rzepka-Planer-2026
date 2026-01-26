@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Package, Printer, Loader2, 
-  Table as TableIcon, List
+  Table as TableIcon, List, MapPin, Info
 } from 'lucide-react';
 import { supabase } from '../supabase';
 
@@ -69,129 +69,167 @@ const AdminOrders: React.FC = () => {
   if (loading) return (
     <div className="p-40 flex flex-col items-center justify-center gap-4">
       <Loader2 size={64} className="animate-spin text-amber-500" />
-      <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Generowanie arkuszy...</p>
+      <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Przygotowanie danych...</p>
     </div>
   );
 
   return (
-    <div className="space-y-8 pb-24">
+    <div className="space-y-8 pb-24 max-w-[1600px] mx-auto">
+      {/* STYLE DRUKU - WYMUSZENIE EXCELA */}
       <style>{`
         @media print {
-          @page { size: A4 landscape; margin: 10mm; }
-          body { background: white !important; font-family: sans-serif; }
+          @page { size: A4 landscape; margin: 8mm; }
+          body { background: white !important; padding: 0 !important; margin: 0 !important; }
           .no-print { display: none !important; }
-          .printable-area { display: block !important; width: 100%; color: black !important; }
+          #root { background: white !important; }
+          main { padding: 0 !important; margin: 0 !important; }
           
-          table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+          .printable-area { display: block !important; width: 100% !important; border: none !important; box-shadow: none !important; padding: 0 !important; }
+          .printable-area h1 { font-size: 14pt !important; margin-bottom: 4mm !important; color: black !important; text-align: center; }
+          
+          table { width: 100% !important; border-collapse: collapse !important; border: 2px solid black !important; }
           th, td { 
             border: 1px solid black !important; 
-            padding: 4px 2px; 
-            font-size: 8pt; 
-            overflow: hidden;
-            word-wrap: break-word;
+            padding: 3px 2px !important; 
+            font-size: 8pt !important; 
+            color: black !important;
+            font-weight: bold !important;
+            background: transparent !important;
           }
-          th { background: #eee !important; font-weight: bold; text-transform: uppercase; }
-          .section-row { background: #ddd !important; font-weight: bold; }
-          h1 { font-size: 14pt; margin-bottom: 5mm; text-align: center; font-weight: bold; text-transform: uppercase; }
-          .sum-cell { font-weight: bold; background: #f9f9f9 !important; }
+          th { background: #f0f0f0 !important; }
+          .section-row td { background: #e0e0e0 !important; font-size: 9pt !important; text-align: center !important; }
+          .sum-col { background: #f5f5f5 !important; border-left: 2px solid black !important; }
         }
       `}</style>
 
-      {/* UI Controls */}
+      {/* NAGŁÓWEK UI */}
       <div className="bg-white p-8 rounded-[3rem] border border-slate-200 shadow-sm flex flex-col xl:flex-row justify-between items-start xl:items-center gap-6 no-print">
         <div className="flex items-center gap-4">
-           <div className="w-14 h-14 bg-slate-900 text-amber-500 rounded-2xl flex items-center justify-center">
+           <div className="w-14 h-14 bg-slate-900 text-amber-500 rounded-2xl flex items-center justify-center shadow-lg transition-transform hover:scale-105">
               <Package size={28}/>
            </div>
            <div>
-              <h1 className="text-2xl font-black text-slate-900 uppercase tracking-tight leading-none mb-1">Produkcja i Rozdzielnia</h1>
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Wybierz datę dostawy i tryb widoku</p>
+              <h1 className="text-2xl font-black text-slate-900 uppercase tracking-tight leading-none mb-1">Panel Produkcji</h1>
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Zarządzanie zamówieniami sieci Rzepka</p>
            </div>
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
-          <div className="bg-slate-100 p-1 rounded-2xl flex gap-1">
-             <button onClick={() => setViewMode('summary')} className={`px-6 py-2 rounded-xl font-black text-[10px] uppercase transition-all ${viewMode === 'summary' ? 'bg-white text-slate-900 shadow-md' : 'text-slate-400'}`}>
-               Zbiorczo
+          <div className="bg-slate-100 p-1.5 rounded-2xl flex gap-1">
+             <button onClick={() => setViewMode('summary')} className={`px-6 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all ${viewMode === 'summary' ? 'bg-white text-slate-900 shadow-md' : 'text-slate-400 hover:text-slate-600'}`}>
+               <List size={14} className="inline mr-2" /> Zbiorczo
              </button>
-             <button onClick={() => setViewMode('matrix')} className={`px-6 py-2 rounded-xl font-black text-[10px] uppercase transition-all ${viewMode === 'matrix' ? 'bg-white text-slate-900 shadow-md' : 'text-slate-400'}`}>
-               Arkusz Rozdzielni
+             <button onClick={() => setViewMode('matrix')} className={`px-6 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all ${viewMode === 'matrix' ? 'bg-white text-slate-900 shadow-md' : 'text-slate-400'}`}>
+               <TableIcon size={14} className="inline mr-2" /> Rozdzielnia
              </button>
           </div>
-          <input type="date" value={deliveryDate} onChange={e => setDeliveryDate(e.target.value)} className="px-5 py-3 bg-slate-900 text-white rounded-2xl font-black text-xs outline-none" />
-          <button onClick={handlePrint} className="p-4 bg-amber-500 text-white rounded-2xl hover:bg-amber-600 shadow-xl">
-             <Printer size={20} />
-          </button>
+          <div className="bg-slate-900 p-1.5 rounded-2xl flex items-center gap-2 pr-4 shadow-xl">
+             <input type="date" value={deliveryDate} onChange={e => setDeliveryDate(e.target.value)} className="bg-transparent text-white font-black text-xs outline-none px-3 cursor-pointer" />
+             <button onClick={handlePrint} className="p-2.5 bg-amber-500 text-white rounded-xl hover:bg-amber-600 transition-all">
+                <Printer size={18} />
+             </button>
+          </div>
         </div>
       </div>
 
-      <div className="printable-area bg-white p-8 rounded-[3rem] border border-slate-200 shadow-sm overflow-hidden">
-        <h1>PLAN PRODUKCJI - DOSTAWA: {deliveryDate}</h1>
+      {/* OBSZAR WYŚWIETLANIA / DRUKU */}
+      <div className="printable-area bg-white p-10 rounded-[3.5rem] border border-slate-200 shadow-sm overflow-hidden">
+        <div className="mb-12 flex items-center justify-between">
+           <div>
+             <h2 className="text-4xl font-black text-slate-900 tracking-tighter uppercase leading-none">DOSTAWA: {deliveryDate}</h2>
+             <p className="text-[10px] font-black text-amber-600 uppercase tracking-[0.4em] mt-2 ml-1">Plan Produkcji i Arkusz Rozdzielni</p>
+           </div>
+           <div className="no-print hidden lg:flex items-center gap-4 text-slate-400">
+              <Info size={16} />
+              <p className="text-[9px] font-bold uppercase tracking-widest">Wskazówka: Użyj trybu poziomego (Landscape) do druku macierzy.</p>
+           </div>
+        </div>
 
         {viewMode === 'summary' ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 print:block">
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-12 print:block">
             {['Piekarnia', 'Cukiernia'].map(section => (
-              <div key={section} className="mb-8">
-                <table className="print:mb-10">
-                  <thead>
-                    <tr>
-                      <th style={{ width: '40px' }}>KOD</th>
-                      <th>NAZWA TOWARU ({section.toUpperCase()})</th>
-                      <th style={{ width: '60px' }}>SUMA</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {productionSummary.filter(s => s.section === section).map((item, idx) => (
-                      <tr key={idx}>
-                        <td className="text-center font-bold">{item.code || '-'}</td>
-                        <td className="font-bold">{item.name}</td>
-                        <td className="text-center text-base font-bold">{item.qty}</td>
+              <div key={section} className="space-y-6 mb-12">
+                <div className="flex items-center gap-4 px-4 no-print">
+                   <span className="text-2xl">{section === 'Piekarnia' ? '🍞' : '🍰'}</span>
+                   <h3 className="text-sm font-black text-slate-900 uppercase tracking-[0.3em]">{section}</h3>
+                   <div className="h-[1px] bg-slate-100 flex-1"></div>
+                </div>
+                
+                <div className="bg-white border border-slate-100 rounded-[2.5rem] overflow-hidden shadow-sm print:border-black print:rounded-none">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="bg-slate-900 text-white print:bg-slate-200 print:text-black">
+                        <th className="px-6 py-6 text-left text-[10px] font-black uppercase tracking-widest" style={{ width: '80px' }}>Kod</th>
+                        <th className="px-6 py-6 text-left text-[10px] font-black uppercase tracking-widest">Nazwa Towaru</th>
+                        <th className="px-6 py-6 text-center text-[10px] font-black uppercase tracking-widest" style={{ width: '100px' }}>Ilość</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 print:divide-black">
+                      {productionSummary.filter(s => s.section === section).map((item, idx) => (
+                        <tr key={idx} className="hover:bg-slate-50 transition-colors">
+                          <td className="px-6 py-4 text-center text-xs font-black text-slate-400 print:text-black">{item.code || '-'}</td>
+                          <td className="px-6 py-4 text-sm font-black text-slate-800 uppercase tracking-tight">{item.name}</td>
+                          <td className="px-6 py-4 text-center text-xl font-black text-slate-900">{item.qty} <span className="text-[9px] font-bold text-slate-300 print:hidden">SZT.</span></td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             ))}
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table>
-              <thead>
-                <tr>
-                  <th style={{ width: '150px' }}>TOWAR / PUNKT</th>
-                  {locations.map(l => (
-                    <th key={l.id}>{l.name.replace('Piekarnia ', '').substring(0, 10)}</th>
-                  ))}
-                  <th style={{ width: '50px' }}>SUMA</th>
-                </tr>
-              </thead>
-              <tbody>
-                {['Piekarnia', 'Cukiernia'].map(section => (
-                  <React.Fragment key={section}>
-                    <tr className="section-row">
-                      <td colSpan={locations.length + 2}>{section.toUpperCase()}</td>
-                    </tr>
-                    {productionSummary.filter(s => s.section === section).map((prod, idx) => (
-                      <tr key={idx}>
-                        <td className="font-bold text-[7pt]">
-                          {prod.code ? `[${prod.code}] ` : ''}{prod.name}
-                        </td>
-                        {locations.map(loc => {
-                          const orderForLoc = orders.find(o => o.location_id === loc.id);
-                          const itemInOrder = orderForLoc?.order_items.find((oi: any) => oi.inventory.name === prod.name);
-                          return (
-                            <td key={loc.id} className="text-center font-bold">
-                              {itemInOrder?.quantity || ''}
-                            </td>
-                          );
-                        })}
-                        <td className="text-center font-bold bg-slate-50">{prod.qty}</td>
-                      </tr>
+          /* MATRIX VIEW / ROZDZIELNIA */
+          <div className="bg-white border border-slate-100 rounded-[2.5rem] overflow-hidden shadow-sm print:border-black print:rounded-none">
+            <div className="overflow-x-auto custom-scrollbar">
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr className="bg-slate-900 text-white print:bg-slate-200 print:text-black">
+                    <th className="sticky left-0 z-20 bg-slate-900 px-6 py-8 text-left text-[10px] font-black uppercase tracking-widest border-r border-white/10 print:bg-white print:text-black print:border-black" style={{ minWidth: '220px' }}>Towar / Punkt</th>
+                    {locations.map(l => (
+                      <th key={l.id} className="px-3 py-8 text-center text-[10px] font-black uppercase tracking-widest border-r border-white/5 min-w-[120px] print:border-black">
+                        <div className="flex flex-col items-center gap-1">
+                          <MapPin size={12} className="text-amber-500 print:hidden" />
+                          {l.name.replace('Piekarnia ', '')}
+                        </div>
+                      </th>
                     ))}
-                  </React.Fragment>
-                ))}
-              </tbody>
-            </table>
+                    <th className="sticky right-0 z-20 bg-amber-500 px-6 py-8 text-center text-[10px] font-black uppercase tracking-widest text-white print:bg-white print:text-black print:border-black" style={{ minWidth: '100px' }}>SUMA</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 print:divide-black">
+                  {['Piekarnia', 'Cukiernia'].map(section => (
+                    <React.Fragment key={section}>
+                      <tr className="section-row bg-slate-50/80 font-black text-[11px] uppercase tracking-[0.3em] text-slate-400 print:bg-slate-200 print:text-black">
+                        <td colSpan={locations.length + 2} className="px-8 py-4">{section}</td>
+                      </tr>
+                      {productionSummary.filter(s => s.section === section).map((prod, idx) => (
+                        <tr key={idx} className="hover:bg-slate-50 transition-colors group">
+                          <td className="sticky left-0 z-10 bg-white px-6 py-4 text-xs font-black text-slate-800 border-r border-slate-100 group-hover:bg-slate-50 print:border-black">
+                            <div className="flex items-center gap-3">
+                               <span className="w-8 text-[9px] text-slate-300 font-black print:text-black">{prod.code || '-'}</span>
+                               <span className="uppercase">{prod.name}</span>
+                            </div>
+                          </td>
+                          {locations.map(loc => {
+                            const orderForLoc = orders.find(o => o.location_id === loc.id);
+                            const itemInOrder = orderForLoc?.order_items.find((oi: any) => oi.inventory.name === prod.name);
+                            return (
+                              <td key={loc.id} className={`px-2 py-4 text-center text-lg font-black border-r border-slate-50 print:border-black ${itemInOrder ? 'text-slate-900' : 'text-slate-100 print:text-transparent'}`}>
+                                {itemInOrder?.quantity || ''}
+                              </td>
+                            );
+                          })}
+                          <td className="sticky right-0 z-10 bg-amber-50/80 px-6 py-4 text-center text-xl font-black text-amber-700 group-hover:bg-amber-100 transition-colors print:bg-white print:text-black print:border-black">
+                             {prod.qty}
+                          </td>
+                        </tr>
+                      ))}
+                    </React.Fragment>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
       </div>
