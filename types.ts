@@ -1,39 +1,19 @@
 
 export type Role = 'admin' | 'user';
-export type LossTargetType = 'percent' | 'amount';
 
-export interface Location {
-  id: string;
-  name: string;
-}
+// Adding missing type for loss targets used in budgeting
+export type LossTargetType = 'percent' | 'amount';
 
 export interface UserProfile {
   id: string;
   email: string;
   role: Role;
   default_location_id?: string | null;
-  name?: string;
 }
 
-export interface Target {
+export interface Location {
   id: string;
-  location_id: string;
-  month: number;
-  year: number;
-  bakery_daily_target: number;
-  bakery_loss_target: number;
-  bakery_loss_type: LossTargetType;
-  pastry_daily_target: number;
-  pastry_loss_target: number;
-  pastry_loss_type: LossTargetType;
-}
-
-export interface Message {
-  id: string;
-  sender_id: string;
-  recipient_location_id: string | null;
-  content: string;
-  created_at: string;
-  is_read: boolean;
-  is_urgent?: boolean;
+  name: string;
+  address: string;
+  status: string;
 }
