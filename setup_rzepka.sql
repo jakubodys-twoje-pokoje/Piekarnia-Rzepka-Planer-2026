@@ -1,7 +1,9 @@
 
--- SKRYPT NAPRAWCZY PIEKARNIA RZEPKA v3.2 (KLINICZNY)
+-- 1. CZYSZCZENIE STARYCH WYZWALACZY (TO ROZWIĄZUJE BŁĄD 500)
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+DROP FUNCTION IF EXISTS public.handle_new_user();
 
--- 1. USUNIĘCIE STARYCH POLITYK (CZYSTOŚĆ)
+-- 2. RESET POLITYK RLS (USUWA REKURENCJĘ)
 DO $$ 
 DECLARE 
     pol record;
@@ -12,19 +14,7 @@ BEGIN
     END LOOP;
 END $$;
 
--- 2. FUNKCJE BEZPIECZEŃSTWA (SECURITY DEFINER bypassuje RLS)
-CREATE OR REPLACE FUNCTION public.check_is_admin()
-RETURNS boolean AS $$
-BEGIN
-  RETURN (
-    SELECT role = 'admin' 
-    FROM public.profiles 
-    WHERE id = auth.uid()
-  );
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
-
--- 3. TABELE (Upewnienie się że istnieją)
+-- 3. KONSTRUKCJA TABEL
 CREATE TABLE IF NOT EXISTS public.locations (
     id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
     name text NOT NULL,
@@ -43,56 +33,90 @@ CREATE TABLE IF NOT EXISTS public.profiles (
     created_at timestamp with time zone DEFAULT now()
 );
 
--- 4. WŁĄCZENIE RLS
+CREATE TABLE IF NOT EXISTS public.inventory (
+    id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+    name text NOT NULL,
+    code text,
+    section text NOT NULL,
+    category text,
+    is_active boolean DEFAULT true,
+    created_at timestamp with time zone DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.orders (
+    id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+    location_id uuid REFERENCES public.locations(id) ON DELETE CASCADE,
+    user_id uuid REFERENCES public.profiles(id),
+    order_date date DEFAULT CURRENT_DATE,
+    delivery_date date NOT NULL,
+    status text DEFAULT 'pending',
+    created_at timestamp with time zone DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.order_items (
+    id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+    order_id uuid REFERENCES public.orders(id) ON DELETE CASCADE,
+    product_id uuid REFERENCES public.inventory(id) ON DELETE CASCADE,
+    quantity integer NOT NULL,
+    created_at timestamp with time zone DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.targets (
+    id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+    location_id uuid REFERENCES public.locations(id) ON DELETE CASCADE,
+    week_number integer NOT NULL,
+    year integer NOT NULL,
+    bakery_daily_target numeric DEFAULT 0,
+    bakery_loss_target numeric DEFAULT 0,
+    pastry_daily_target numeric DEFAULT 0,
+    pastry_loss_target numeric DEFAULT 0,
+    created_at timestamp with time zone DEFAULT now(),
+    UNIQUE(location_id, week_number, year)
+);
+
+-- 4. AUTOMATYCZNY PROFIL PRZY REJESTRACJI
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS trigger AS $$
+BEGIN
+  INSERT INTO public.profiles (id, email, role)
+  VALUES (new.id, new.email, 'user')
+  ON CONFLICT (id) DO NOTHING;
+  RETURN new;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+
+-- 5. WŁĄCZENIE RLS
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.locations ENABLE ROW LEVEL SECURITY;
-
--- 5. NOWE, PROSTE POLITYKI (BEZ REKURENCJI)
-
--- PROFILES: Każdy widzi siebie, Admin widzi wszystkich
-CREATE POLICY "profiles_self_select" ON public.profiles FOR SELECT USING (auth.uid() = id);
-CREATE POLICY "profiles_admin_select" ON public.profiles FOR SELECT USING (public.check_is_admin());
-CREATE POLICY "profiles_self_update" ON public.profiles FOR UPDATE USING (auth.uid() = id);
-CREATE POLICY "profiles_admin_all" ON public.profiles FOR ALL USING (public.check_is_admin());
-
--- LOCATIONS: Każdy widzi, tylko Admin edytuje
-CREATE POLICY "locations_public_select" ON public.locations FOR SELECT USING (true);
-CREATE POLICY "locations_admin_all" ON public.locations FOR ALL USING (public.check_is_admin());
-
--- DAILY REPORTS: Każdy widzi swoje/wszystkie, Admin ma pełną władzę
-CREATE TABLE IF NOT EXISTS public.daily_reports (
-    id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
-    date date NOT NULL,
-    location_id uuid REFERENCES public.locations(id) ON DELETE CASCADE,
-    user_id uuid REFERENCES public.profiles(id) ON DELETE SET NULL,
-    bakery_sales numeric DEFAULT 0,
-    bakery_loss numeric DEFAULT 0,
-    pastry_sales numeric DEFAULT 0,
-    pastry_loss numeric DEFAULT 0,
-    verified boolean DEFAULT false,
-    created_at timestamp with time zone DEFAULT now(),
-    UNIQUE(date, location_id)
-);
-ALTER TABLE public.daily_reports ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "reports_select" ON public.daily_reports FOR SELECT USING (
-    public.check_is_admin() OR 
-    location_id IN (SELECT default_location_id FROM public.profiles WHERE id = auth.uid())
-);
-CREATE POLICY "reports_insert" ON public.daily_reports FOR INSERT WITH CHECK (true);
-CREATE POLICY "reports_admin_all" ON public.daily_reports FOR ALL USING (public.check_is_admin());
-
--- INWENTARZ I ZAMÓWIENIA (Pełny dostęp dla zalogowanych dla uproszczenia debugowania)
 ALTER TABLE public.inventory ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.orders ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.order_items ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.messages ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.targets ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "inventory_all" ON public.inventory FOR ALL USING (true);
-CREATE POLICY "orders_all" ON public.orders FOR ALL USING (true);
-CREATE POLICY "order_items_all" ON public.order_items FOR ALL USING (true);
-CREATE POLICY "messages_all" ON public.messages FOR ALL USING (true);
+-- 6. PROSTE POLITYKI (BRAK REKURENCJI)
+CREATE POLICY "profiles_select" ON public.profiles FOR SELECT USING (true);
+CREATE POLICY "profiles_update_own" ON public.profiles FOR UPDATE USING (auth.uid() = id);
 
--- DANE STARTOWE (Tylko jeśli puste)
+CREATE POLICY "locations_select" ON public.locations FOR SELECT USING (true);
+CREATE POLICY "locations_all_admin" ON public.locations FOR ALL USING (
+  EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin')
+);
+
+CREATE POLICY "inventory_select" ON public.inventory FOR SELECT USING (true);
+CREATE POLICY "inventory_all_admin" ON public.inventory FOR ALL USING (
+  EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin')
+);
+
+CREATE POLICY "orders_select" ON public.orders FOR SELECT USING (true);
+CREATE POLICY "orders_insert" ON public.orders FOR INSERT WITH CHECK (auth.uid() IS NOT NULL);
+
+CREATE POLICY "order_items_select" ON public.order_items FOR SELECT USING (true);
+CREATE POLICY "order_items_insert" ON public.order_items FOR INSERT WITH CHECK (true);
+
+-- DANE STARTOWE
 INSERT INTO public.locations (name, address) 
 SELECT 'CENTRUM', 'ul. Kupiecka 1' WHERE NOT EXISTS (SELECT 1 FROM public.locations LIMIT 1);
