@@ -8,6 +8,8 @@ export interface UserProfile {
   id: string;
   email: string;
   role: Role;
+  first_name?: string | null;
+  last_name?: string | null;
   default_location_id?: string | null;
 }
 

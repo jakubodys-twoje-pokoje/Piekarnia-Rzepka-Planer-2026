@@ -2,7 +2,6 @@
 import React from 'react';
 import { Menu, Bell, Search, User, ShieldCheck } from 'lucide-react';
 import { UserProfile } from '../types';
-import { LOCATIONS } from '../constants';
 
 interface HeaderProps {
   onToggleSidebar: () => void;
@@ -10,8 +9,10 @@ interface HeaderProps {
 }
 
 const Header: React.FC<HeaderProps> = ({ onToggleSidebar, user }) => {
-  const locationName = LOCATIONS.find(l => l.id === user.default_location_id)?.name;
   const isAdmin = user.role === 'admin';
+  const displayName = user.first_name && user.last_name 
+    ? `${user.first_name} ${user.last_name}` 
+    : user.email.split('@')[0];
 
   return (
     <header className="bg-white border-b border-slate-200 h-16 flex items-center justify-between px-6 shrink-0 z-10">
@@ -23,14 +24,6 @@ const Header: React.FC<HeaderProps> = ({ onToggleSidebar, user }) => {
           <Menu size={20} />
         </button>
         
-        {/* Wskaźnik lokalizacji - Widoczny TYLKO dla pracowników */}
-        {!isAdmin && locationName && (
-          <div className="hidden sm:flex items-center gap-2 text-sm font-medium text-slate-600 bg-slate-100 px-3 py-1.5 rounded-full border border-slate-200">
-            <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span>
-            <span className="text-[11px] font-black uppercase tracking-tight">{locationName}</span>
-          </div>
-        )}
-
         {/* Wskaźnik globalny - Widoczny TYLKO dla administratora */}
         {isAdmin && (
           <div className="hidden sm:flex items-center gap-2 text-amber-700 bg-amber-50 px-3 py-1.5 rounded-full border border-amber-100">
@@ -55,7 +48,7 @@ const Header: React.FC<HeaderProps> = ({ onToggleSidebar, user }) => {
         </button>
         <div className="flex items-center gap-3 pl-4 border-l border-slate-200">
           <div className="text-right hidden sm:block">
-            <p className="text-sm font-black text-slate-800 leading-none">{user.email.split('@')[0]}</p>
+            <p className="text-sm font-black text-slate-800 leading-none">{displayName}</p>
             <p className="text-[10px] text-slate-400 font-bold uppercase mt-1">
               {isAdmin ? 'Administrator' : 'Pracownik'}
             </p>

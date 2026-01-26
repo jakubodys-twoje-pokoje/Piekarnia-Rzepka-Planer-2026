@@ -35,6 +35,8 @@ const App: React.FC = () => {
           id: data.id,
           email: sessionUser.email,
           role: data.role,
+          first_name: data.first_name,
+          last_name: data.last_name,
           default_location_id: data.default_location_id
         });
       } else {
@@ -49,6 +51,8 @@ const App: React.FC = () => {
           id: sessionUser.id,
           email: sessionUser.email,
           role: newProfile?.role || 'user',
+          first_name: null,
+          last_name: null,
           default_location_id: null
         });
       }

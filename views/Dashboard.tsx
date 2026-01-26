@@ -30,13 +30,15 @@ const Dashboard: React.FC<{ user: UserProfile }> = ({ user }) => {
     fetchData();
   }, [user.id, user.default_location_id]);
 
+  const welcomeName = user.first_name || user.email.split('@')[0];
+
   if (loading) return <div className="h-96 flex flex-col items-center justify-center"><Loader2 className="animate-spin text-amber-500" size={40} /></div>;
 
   return (
     <div className="space-y-8 pb-20">
       <div className="bg-white p-8 rounded-[3rem] border border-slate-200 shadow-sm flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-black text-slate-900 tracking-tight uppercase">Witaj, {user.email.split('@')[0]}!</h1>
+          <h1 className="text-3xl font-black text-slate-900 tracking-tight uppercase">Witaj, {welcomeName}!</h1>
           <p className="text-slate-500 font-medium">Bieżący miesiąc: <span className="text-amber-600 font-black uppercase">{new Intl.DateTimeFormat('pl-PL', { month: 'long', year: 'numeric' }).format(new Date())}</span></p>
         </div>
         <div className="hidden md:block text-right">

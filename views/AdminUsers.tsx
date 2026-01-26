@@ -5,26 +5,25 @@ import {
   Shield, User as UserIcon, Loader2, Save, MapPin, 
   UserPlus, X, Key, Mail, AlertCircle, Trash2, Edit2, CheckCircle2 
 } from 'lucide-react';
-import { LOCATIONS } from '../constants';
-import { Role } from '../types';
 
 const AdminUsers: React.FC = () => {
   const [users, setUsers] = useState<any[]>([]);
+  const [locations, setLocations] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [modal, setModal] = useState<any | null>(null);
   const [status, setStatus] = useState<'idle' | 'processing' | 'success' | 'error'>('idle');
   const [errorMsg, setErrorMsg] = useState('');
 
-  const fetchUsers = async () => {
+  const fetchData = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .order('email');
+      const [{ data: profData }, { data: locData }] = await Promise.all([
+        supabase.from('profiles').select('*').order('email'),
+        supabase.from('locations').select('*').order('name')
+      ]);
       
-      if (error) throw error;
-      setUsers(data || []);
+      setUsers(profData || []);
+      setLocations(locData || []);
     } catch (err: any) {
       console.error(err);
       setErrorMsg(err.message);
@@ -34,7 +33,7 @@ const AdminUsers: React.FC = () => {
   };
 
   useEffect(() => {
-    fetchUsers();
+    fetchData();
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -43,8 +42,9 @@ const AdminUsers: React.FC = () => {
     setErrorMsg('');
 
     try {
+      const locationIdValue = modal.default_location_id === 'none' ? null : modal.default_location_id;
+
       if (modal.isNew) {
-        // 1. Tworzenie użytkownika w Auth
         const { data: authData, error: authError } = await supabase.auth.signUp({
           email: modal.email,
           password: modal.password,
@@ -53,12 +53,13 @@ const AdminUsers: React.FC = () => {
         if (authError) throw authError;
 
         if (authData.user) {
-          // 2. Aktualizacja profilu (rola i lokalizacja)
           const { error: profileError } = await supabase
             .from('profiles')
             .update({
               role: modal.role,
-              default_location_id: modal.default_location_id === 'none' ? null : modal.default_location_id,
+              first_name: modal.first_name,
+              last_name: modal.last_name,
+              default_location_id: locationIdValue,
               email: modal.email
             })
             .eq('id', authData.user.id);
@@ -66,12 +67,13 @@ const AdminUsers: React.FC = () => {
           if (profileError) throw profileError;
         }
       } else {
-        // Edycja istniejącego użytkownika
         const { error: updateError } = await supabase
           .from('profiles')
           .update({
             role: modal.role,
-            default_location_id: modal.default_location_id === 'none' ? null : modal.default_location_id
+            first_name: modal.first_name,
+            last_name: modal.last_name,
+            default_location_id: locationIdValue
           })
           .eq('id', modal.id);
 
@@ -82,7 +84,7 @@ const AdminUsers: React.FC = () => {
       setTimeout(() => {
         setModal(null);
         setStatus('idle');
-        fetchUsers();
+        fetchData();
       }, 1500);
     } catch (err: any) {
       console.error(err);
@@ -92,12 +94,11 @@ const AdminUsers: React.FC = () => {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Czy na pewno chcesz usunąć profil tego pracownika? Uwaga: usunięcie konta z systemu logowania musi zostać wykonane w panelu Supabase Auth.')) return;
-    
+    if (!confirm('Usunąć profil? System usunie tylko dane profilu, konto w Auth musi zostać usunięte ręcznie w panelu Supabase.')) return;
     try {
       const { error } = await supabase.from('profiles').delete().eq('id', id);
       if (error) throw error;
-      fetchUsers();
+      fetchData();
     } catch (err: any) {
       alert("Błąd: " + err.message);
     }
@@ -106,7 +107,7 @@ const AdminUsers: React.FC = () => {
   if (loading && users.length === 0) return (
     <div className="flex flex-col items-center justify-center p-20 gap-4">
       <Loader2 className="animate-spin text-amber-500" size={40} />
-      <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Wczytywanie listy zespołu...</p>
+      <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Wczytywanie zespołu...</p>
     </div>
   );
 
@@ -118,7 +119,7 @@ const AdminUsers: React.FC = () => {
           <p className="text-slate-500 font-medium">Zarządzaj dostępem pracowników do systemu.</p>
         </div>
         <button 
-          onClick={() => setModal({ isNew: true, email: '', password: '', role: 'user', default_location_id: 'none' })}
+          onClick={() => setModal({ isNew: true, email: '', password: '', first_name: '', last_name: '', role: 'user', default_location_id: 'none' })}
           className="flex items-center gap-2 bg-slate-900 text-white px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-amber-600 transition-all shadow-xl active:scale-95"
         >
           <UserPlus size={18} /> Dodaj Pracownika
@@ -149,18 +150,23 @@ const AdminUsers: React.FC = () => {
             </div>
             
             <div className="space-y-1 mb-6">
-              <h3 className="text-lg font-black text-slate-800 break-all">{u.email}</h3>
+              <h3 className="text-lg font-black text-slate-800 break-all leading-tight">
+                {u.first_name && u.last_name ? `${u.first_name} ${u.last_name}` : u.email.split('@')[0]}
+              </h3>
               <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                <Shield size={12} className={u.role === 'admin' ? 'text-amber-500' : 'text-slate-300'} />
-                Rola: {u.role === 'admin' ? 'Administrator' : 'Pracownik'}
+                <Mail size={10} /> {u.email}
               </p>
+              <div className="flex items-center gap-2 mt-2">
+                <Shield size={10} className={u.role === 'admin' ? 'text-amber-500' : 'text-slate-300'} />
+                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{u.role === 'admin' ? 'Administrator' : 'Pracownik'}</span>
+              </div>
             </div>
 
             <div className="pt-4 border-t border-slate-50">
               <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Punkt Domyślny</p>
               <div className="flex items-center gap-2 text-slate-700 font-bold text-sm bg-slate-50 px-4 py-2 rounded-xl">
                 <MapPin size={14} className="text-amber-500" />
-                {LOCATIONS.find(l => l.id === u.default_location_id)?.name || 'Nieprzypisany'}
+                {locations.find(l => l.id === u.default_location_id)?.name || 'Nieprzypisany'}
               </div>
             </div>
           </div>
@@ -173,18 +179,12 @@ const AdminUsers: React.FC = () => {
             <form onSubmit={handleSubmit} className="p-10 space-y-8">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Zarządzanie kontem</h3>
+                  <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Dane pracownika</h3>
                   <p className="text-2xl font-black text-slate-900 uppercase tracking-tight">
-                    {modal.isNew ? 'Nowy Pracownik' : 'Edycja Profilu'}
+                    {modal.isNew ? 'Nowy Użytkownik' : 'Edycja Profilu'}
                   </p>
                 </div>
-                <button 
-                  type="button" 
-                  onClick={() => setModal(null)}
-                  className="p-3 bg-slate-50 text-slate-400 hover:text-slate-900 rounded-full transition-all"
-                >
-                  <X size={24} />
-                </button>
+                <button type="button" onClick={() => setModal(null)} className="p-3 bg-slate-50 text-slate-400 hover:text-slate-900 rounded-full transition-all"><X size={24} /></button>
               </div>
 
               {status === 'error' && (
@@ -194,79 +194,51 @@ const AdminUsers: React.FC = () => {
               )}
 
               <div className="space-y-5">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Imię</label>
+                    <input type="text" value={modal.first_name || ''} onChange={e => setModal({...modal, first_name: e.target.value})} className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl font-bold outline-none" placeholder="Jan" />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Nazwisko</label>
+                    <input type="text" value={modal.last_name || ''} onChange={e => setModal({...modal, last_name: e.target.value})} className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl font-bold outline-none" placeholder="Kowalski" />
+                  </div>
+                </div>
+
                 {modal.isNew && (
                   <>
                     <div className="space-y-2">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-2">
-                        <Mail size={12} /> Email służbowy
-                      </label>
-                      <input 
-                        type="email" 
-                        required
-                        value={modal.email}
-                        onChange={e => setModal({...modal, email: e.target.value})}
-                        placeholder="nazwisko@rzepka.pl"
-                        className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl font-bold focus:bg-white focus:ring-2 focus:ring-amber-500/20 outline-none"
-                      />
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-2"><Mail size={12} /> Email</label>
+                      <input type="email" required value={modal.email} onChange={e => setModal({...modal, email: e.target.value})} className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl font-bold outline-none" placeholder="nazwisko@rzepka.pl" />
                     </div>
                     <div className="space-y-2">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-2">
-                        <Key size={12} /> Hasło startowe
-                      </label>
-                      <input 
-                        type="password" 
-                        required
-                        value={modal.password}
-                        onChange={e => setModal({...modal, password: e.target.value})}
-                        placeholder="••••••••"
-                        className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl font-bold focus:bg-white focus:ring-2 focus:ring-amber-500/20 outline-none"
-                      />
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-2"><Key size={12} /> Hasło</label>
+                      <input type="password" required value={modal.password} onChange={e => setModal({...modal, password: e.target.value})} className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl font-bold outline-none" placeholder="••••••••" />
                     </div>
                   </>
-                )}
-
-                {!modal.isNew && (
-                  <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Edytowany profil</p>
-                    <p className="text-sm font-black text-slate-700">{modal.email}</p>
-                  </div>
                 )}
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Rola</label>
-                    <select 
-                      value={modal.role}
-                      onChange={e => setModal({...modal, role: e.target.value})}
-                      className="w-full px-4 py-4 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs uppercase outline-none focus:ring-2 focus:ring-amber-500/20"
-                    >
+                    <select value={modal.role} onChange={e => setModal({...modal, role: e.target.value})} className="w-full px-4 py-4 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs uppercase outline-none">
                       <option value="user">Pracownik</option>
                       <option value="admin">Administrator</option>
                     </select>
                   </div>
                   <div className="space-y-2">
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Punkt</label>
-                    <select 
-                      value={modal.default_location_id}
-                      onChange={e => setModal({...modal, default_location_id: e.target.value})}
-                      className="w-full px-4 py-4 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs uppercase outline-none focus:ring-2 focus:ring-amber-500/20"
-                    >
-                      <option value="none">Brak (Global)</option>
-                      {LOCATIONS.map(l => (
-                        <option key={l.id} value={l.id}>{l.name}</option>
-                      ))}
+                    <select value={modal.default_location_id} onChange={e => setModal({...modal, default_location_id: e.target.value})} className="w-full px-4 py-4 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs uppercase outline-none">
+                      <option value="none">Brak przypisania</option>
+                      {locations.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
                     </select>
                   </div>
                 </div>
               </div>
 
-              <button 
-                type="submit" 
-                disabled={status === 'processing'}
-                className="w-full py-5 bg-slate-900 text-white rounded-2xl font-black text-xs uppercase tracking-[0.2em] hover:bg-amber-600 transition-all shadow-xl flex items-center justify-center gap-3 disabled:opacity-50 active:scale-95"
-              >
+              <button type="submit" disabled={status === 'processing'} className="w-full py-5 bg-slate-900 text-white rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-xl flex items-center justify-center gap-3 disabled:opacity-50">
                 {status === 'processing' ? <Loader2 size={18} className="animate-spin" /> : (status === 'success' ? <CheckCircle2 className="text-emerald-400" /> : <Save size={18} />)}
-                {status === 'processing' ? 'PRZETWARZANIE...' : (status === 'success' ? 'GOTOWE!' : 'ZAPISZ PRACOWNIKA')}
+                {status === 'processing' ? 'PRZETWARZANIE...' : 'ZAPISZ ZMIANY'}
               </button>
             </form>
           </div>
