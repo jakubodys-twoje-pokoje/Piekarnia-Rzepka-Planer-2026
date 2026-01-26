@@ -24,7 +24,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, activeTab, onTabChange, userR
 
       const { data: profile } = await supabase.from('profiles').select('default_location_id').eq('id', user.id).maybeSingle();
 
-      let query = supabase.from('messages').select('id', { count: 'exact' }).eq('is_read', false);
+      // Użycie head: true z count: 'exact' - pobiera tylko liczbę bez danych
+      let query = supabase.from('messages').select('*', { count: 'exact', head: true }).eq('is_read', false);
 
       if (userRole === 'admin') {
         query = query.eq('to_admin', true);
@@ -37,7 +38,11 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, activeTab, onTabChange, userR
         }
       }
 
-      const { count } = await query;
+      const { count, error } = await query;
+      if (error) {
+        console.warn("Sidebar count error:", error.message);
+        return;
+      }
       setUnreadCount(count || 0);
     } catch (e) {
       console.warn("Sidebar count fetch failed", e);

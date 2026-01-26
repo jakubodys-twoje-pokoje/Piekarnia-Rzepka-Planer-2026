@@ -1,0 +1,60 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  font-size: clamp(0.85rem, 0.8rem + 0.25vw, 1rem);
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  -webkit-tap-highlight-color: transparent;
+  letter-spacing: -0.015em;
+}
+
+.custom-scrollbar::-webkit-scrollbar { width: 5px; height: 5px; }
+.custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+.custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.08); border-radius: 10px; }
+.custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.15); }
+
+.custom-scrollbar-heavy::-webkit-scrollbar { height: 12px; width: 12px; }
+.custom-scrollbar-heavy::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 10px; }
+.custom-scrollbar-heavy::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; border: 3px solid #f1f5f9; }
+.custom-scrollbar-heavy::-webkit-scrollbar-thumb:hover { background: #f59e0b; }
+
+@media print {
+  .no-print { display: none !important; }
+  body, html, #root {
+    background: white !important;
+    width: 100% !important;
+    height: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+  }
+  main {
+    padding: 0 !important;
+    margin: 0 !important;
+    display: block !important;
+    width: 100% !important;
+  }
+  .max-w-7xl, .max-w-\[1600px\] {
+    max-width: none !important;
+    width: 100% !important;
+  }
+  .custom-scrollbar, .custom-scrollbar-heavy {
+    overflow: visible !important;
+  }
+  /* Rotacja nagłówków lokalizacji dla zaoszczędzenia miejsca */
+  .print-vertical-th {
+    writing-mode: vertical-rl !important;
+    transform: rotate(180deg) !important;
+    white-space: nowrap !important;
+    height: 120px !important;
+    padding: 5px 2px !important;
+    vertical-align: middle !important;
+    text-align: left !important;
+    min-width: 25px !important;
+    font-size: 7pt !important;
+  }
+}
