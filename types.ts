@@ -11,7 +11,7 @@ export interface UserProfile {
   id: string;
   email: string;
   role: Role;
-  default_location_id: string;
+  default_location_id?: string | null;
   name?: string;
 }
 

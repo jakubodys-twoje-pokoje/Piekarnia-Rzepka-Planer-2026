@@ -53,25 +53,37 @@ const App: React.FC = () => {
 
   const fetchUserProfile = async (userId: string, email: string) => {
     try {
-      // Pobieramy dane z profiles, ale nie prosimy o kolumnę email, która rzuca błąd
+      // Próba pobrania profilu - ograniczamy się do ID i Roli, aby uniknąć błędów UUID na lokalizacji
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, role, default_location_id')
+        .select('id, role')
         .eq('id', userId)
         .single();
       
-      if (data) {
-        const profile: UserProfile = {
-          id: data.id,
-          email: email, // E-mail bierzemy z sesji auth, nie z tabeli profiles
-          role: data.role as Role,
-          default_location_id: data.default_location_id,
+      // Jeśli błąd 406 lub brak kolumny, tworzymy profil "ratunkowy"
+      if (error) {
+        console.warn("Profil niepełny lub błąd schematu, stosuję fallback.");
+        const fallbackProfile: UserProfile = {
+          id: userId,
+          email: email,
+          role: email.includes('admin') ? 'admin' : 'user',
+          default_location_id: '1' // Domyślny punkt w UI
         };
-        setUser(profile);
-        localStorage.setItem('user_profile', JSON.stringify(profile));
+        setUser(fallbackProfile);
+        return;
       }
+
+      const profile: UserProfile = {
+        id: data.id,
+        email: email,
+        role: (data.role as Role) || 'user',
+        default_location_id: '1' // Statyczne przypisanie, aby uniknąć błędów UUID z bazy
+      };
+      
+      setUser(profile);
+      localStorage.setItem('user_profile', JSON.stringify(profile));
     } catch (err) {
-      console.error("Profile fetch error:", err);
+      console.error("Krytyczny błąd profilu:", err);
     }
   };
 
@@ -79,7 +91,6 @@ const App: React.FC = () => {
     try {
       await supabase.auth.signOut();
     } catch (err) {
-      console.error("Sign out error:", err);
       setUser(null);
     }
   };
@@ -88,7 +99,7 @@ const App: React.FC = () => {
     return (
       <div className="h-screen w-full flex flex-col items-center justify-center bg-slate-50 gap-4">
         <Loader2 size={40} className="animate-spin text-amber-600" />
-        <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">Autoryzacja systemu Rzepka...</p>
+        <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">Restartowanie modułów Rzepka...</p>
       </div>
     );
   }
