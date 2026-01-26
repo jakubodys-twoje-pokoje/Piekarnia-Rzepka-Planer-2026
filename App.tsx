@@ -18,13 +18,12 @@ import AdminOrders from './views/AdminOrders';
 import AdminInventory from './views/AdminInventory';
 import Login from './views/Login';
 import { supabase } from './supabase';
-import { Loader2, Database, RefreshCw } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 
 const App: React.FC = () => {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [loading, setLoading] = useState(true);
-  const [dbError, setDbError] = useState<string | null>(null);
 
   const fetchProfile = async (sessionUser: any) => {
     try {
@@ -34,40 +33,21 @@ const App: React.FC = () => {
         .eq('id', sessionUser.id)
         .maybeSingle();
 
-      if (error) throw error;
-
-      if (data) {
-        setUser({
-          id: data.id,
-          email: sessionUser.email,
-          role: data.role,
-          first_name: data.first_name,
-          last_name: data.last_name,
-          default_location_id: data.default_location_id
-        });
-      } else {
-        // Jeśli profil nie istnieje (jeszcze nie stworzony przez trigger)
-        setUser({
-          id: sessionUser.id,
-          email: sessionUser.email,
-          role: 'user',
-          first_name: null,
-          last_name: null,
-          default_location_id: null
-        });
+      if (error) {
+        console.warn("Profile fetch error (using fallback):", error.message);
       }
-      setDbError(null);
-    } catch (err: any) {
-      console.error("Profile Load Error:", err);
-      // Nawet jeśli profil sypie błędem RLS, dajemy dostęp podstawowy
+
+      // Gwarantujemy obiekt użytkownika nawet jeśli baza ma opóźnienie
       setUser({
         id: sessionUser.id,
-        email: sessionUser.email,
-        role: 'user',
-        first_name: null,
-        last_name: null,
-        default_location_id: null
+        email: sessionUser.email || '',
+        role: data?.role || 'user',
+        first_name: data?.first_name || null,
+        last_name: data?.last_name || null,
+        default_location_id: data?.default_location_id || null
       });
+    } catch (err) {
+      console.error("Critical Profile Error:", err);
     } finally {
       setLoading(false);
     }
