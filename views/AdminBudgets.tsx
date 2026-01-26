@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { 
   Save, Loader2, CheckCircle2, 
   AlertCircle, LayoutGrid, 
@@ -52,7 +52,18 @@ const AdminBudgets: React.FC = () => {
   const [targets, setTargets] = useState<Record<string, any>>({});
   const [saveStatus, setSaveStatus] = useState<'idle' | 'success' | 'error'>('idle');
 
+  const topScrollRef = useRef<HTMLDivElement>(null);
+  const mainScrollRef = useRef<HTMLDivElement>(null);
+
   const activeWeeks = useMemo(() => getWeeksInMonth(selectedMonthIdx, selectedYear), [selectedMonthIdx, selectedYear]);
+
+  const handleScroll = (source: 'top' | 'main') => {
+    if (source === 'top' && topScrollRef.current && mainScrollRef.current) {
+      mainScrollRef.current.scrollLeft = topScrollRef.current.scrollLeft;
+    } else if (source === 'main' && topScrollRef.current && mainScrollRef.current) {
+      topScrollRef.current.scrollLeft = mainScrollRef.current.scrollLeft;
+    }
+  };
 
   const fetchData = async () => {
     setLoading(true);
@@ -113,21 +124,21 @@ const AdminBudgets: React.FC = () => {
   if (loading) return (
     <div className="flex flex-col items-center justify-center p-32 gap-6">
       <Loader2 size={64} className="animate-spin text-amber-500" />
-      <h2 className="text-xl font-black text-slate-900 uppercase">Ładowanie Macierzy...</h2>
+      <h2 className="text-xl font-black text-slate-900 uppercase">Budowanie Macierzy...</h2>
     </div>
   );
 
   return (
     <div className="space-y-6 pb-24 max-w-[1600px] mx-auto">
       {/* NAGŁÓWEK KONTROLNY */}
-      <div className="bg-white p-8 rounded-[3rem] border border-slate-200 shadow-sm overflow-hidden">
+      <div className="bg-white p-8 rounded-[3rem] border border-slate-200 shadow-sm">
         <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-6">
           <div className="shrink-0">
             <div className="flex items-center gap-2 text-amber-600 mb-1">
               <Landmark size={14} />
-              <span className="text-[10px] font-black uppercase tracking-[0.2em]">BUDŻET I CELE</span>
+              <span className="text-[10px] font-black uppercase tracking-[0.2em]">PLANOWANIE CELE</span>
             </div>
-            <h1 className="text-3xl font-black text-slate-900 tracking-tighter uppercase leading-none">Planowanie Sieci</h1>
+            <h1 className="text-3xl font-black text-slate-900 tracking-tighter uppercase leading-none">Budżetowanie Sieci</h1>
           </div>
 
           <div className="flex flex-wrap items-center gap-4">
@@ -135,10 +146,7 @@ const AdminBudgets: React.FC = () => {
               {QUARTERS.map(q => (
                 <button
                   key={q.id}
-                  onClick={() => {
-                    setSelectedQuarter(q);
-                    setSelectedMonthIdx(q.months[0]);
-                  }}
+                  onClick={() => { setSelectedQuarter(q); setSelectedMonthIdx(q.months[0]); }}
                   className={`px-6 py-2.5 rounded-xl font-black text-[11px] transition-all uppercase ${
                     selectedQuarter.id === q.id ? 'bg-white text-slate-900 shadow-md' : 'text-slate-400 hover:text-slate-600'
                   }`}
@@ -176,106 +184,113 @@ const AdminBudgets: React.FC = () => {
         </div>
       </div>
 
-      {/* WSKAŹNIK PRZEWIJANIA GÓRNEGO */}
-      <div className="bg-slate-50 px-8 py-2 rounded-full border border-slate-100 flex items-center justify-center gap-4 text-[9px] font-black text-slate-400 uppercase tracking-widest animate-pulse">
-        <ArrowRightLeft size={14} className="text-amber-500" />
-        Przesuń tabelę w poziomie, aby zobaczyć wszystkie tygodnie
-        <ArrowRightLeft size={14} className="text-amber-500" />
-      </div>
+      <div className="space-y-2">
+        {/* Top Scrollbar Sync */}
+        <div 
+          ref={topScrollRef}
+          onScroll={() => handleScroll('top')}
+          className="overflow-x-auto custom-scrollbar-heavy h-4 bg-slate-50 rounded-full border border-slate-100 mb-1"
+        >
+          <div style={{ width: `${300 + (activeWeeks.length * 240)}px`, height: '1px' }}></div>
+        </div>
 
-      {/* GŁÓWNA TABELA - ULEPSZONY SCROLL */}
-      <div className="bg-white rounded-[3.5rem] border border-slate-200 shadow-sm overflow-hidden">
-        <div className="overflow-x-auto custom-scrollbar-heavy p-1">
-          <table className="w-full border-collapse">
-            <thead>
-              <tr className="bg-slate-900 text-white">
-                <th className="sticky left-0 z-30 bg-slate-900 px-10 py-10 text-left border-r border-white/10 min-w-[300px]">
-                  <div className="flex items-center gap-3">
-                     <MapPin size={20} className="text-amber-500" />
-                     <span className="text-[11px] font-black uppercase tracking-[0.2em]">Lokalizacja</span>
-                  </div>
-                </th>
-                {activeWeeks.map(w => (
-                  <th key={w} className="px-6 py-10 text-center min-w-[240px] border-r border-white/10">
-                    <p className="text-[9px] font-black uppercase tracking-[0.4em] text-amber-500/60 mb-1">Tydzień ISO</p>
-                    <p className="text-3xl font-black tracking-tighter">{w}</p>
+        <div className="bg-white rounded-[3.5rem] border border-slate-200 shadow-sm overflow-hidden">
+          <div 
+            ref={mainScrollRef}
+            onScroll={() => handleScroll('main')}
+            className="overflow-x-auto custom-scrollbar-heavy"
+          >
+            <table className="w-full border-collapse">
+              <thead>
+                <tr className="bg-slate-900 text-white">
+                  <th className="sticky left-0 z-30 bg-slate-900 px-10 py-10 text-left border-r border-white/10 min-w-[300px]">
+                    <div className="flex items-center gap-3">
+                       <MapPin size={20} className="text-amber-500" />
+                       <span className="text-[11px] font-black uppercase tracking-[0.2em]">Lokalizacja</span>
+                    </div>
                   </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {locations.map(loc => (
-                <tr key={loc.id} className="hover:bg-slate-50/80 transition-colors group">
-                  <td className="sticky left-0 z-20 bg-white group-hover:bg-slate-50 px-10 py-10 border-r border-slate-100 shadow-[10px_0_20px_-10px_rgba(0,0,0,0.05)]">
-                    <h3 className="text-lg font-black text-slate-900 uppercase tracking-tight leading-none mb-1.5">{loc.name}</h3>
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{loc.address}</p>
-                  </td>
-
-                  {activeWeeks.map(w => {
-                    const key = `${loc.id}-${w}`;
-                    const data = targets[key] || {};
-                    return (
-                      <td key={w} className="p-6 border-r border-slate-100">
-                        <div className="space-y-6">
-                          <div className="bg-amber-50/50 p-4 rounded-3xl border border-amber-100 space-y-4 shadow-inner">
-                            <p className="text-[9px] font-black text-amber-700 uppercase tracking-widest flex items-center gap-2"><Banknote size={12}/> Piekarnia</p>
-                            <div className="space-y-3">
-                              <div>
-                                <label className="text-[8px] font-black text-slate-400 uppercase tracking-wider mb-1 block ml-1">Plan Sprzedaży</label>
-                                <input 
-                                  type="number"
-                                  value={data.bakery_daily_target || ''}
-                                  onChange={e => handleUpdate(loc.id, w, 'bakery_daily_target', e.target.value)}
-                                  className="w-full bg-white px-4 py-3 rounded-xl border border-amber-200 font-black text-sm text-slate-900 outline-none focus:ring-2 focus:ring-amber-500/20"
-                                  placeholder="0.00"
-                                />
-                              </div>
-                              <div>
-                                <label className="text-[8px] font-black text-rose-400 uppercase tracking-wider mb-1 block ml-1">Plan Straty</label>
-                                <input 
-                                  type="number"
-                                  value={data.bakery_loss_target || ''}
-                                  onChange={e => handleUpdate(loc.id, w, 'bakery_loss_target', e.target.value)}
-                                  className="w-full bg-white px-4 py-3 rounded-xl border border-rose-200 font-black text-sm text-rose-600 outline-none focus:ring-2 focus:ring-rose-500/20"
-                                  placeholder="0.00"
-                                />
-                              </div>
-                            </div>
-                          </div>
-
-                          <div className="bg-pink-50/50 p-4 rounded-3xl border border-pink-100 space-y-4 shadow-inner">
-                            <p className="text-[9px] font-black text-pink-700 uppercase tracking-widest flex items-center gap-2"><Banknote size={12}/> Cukiernia</p>
-                            <div className="space-y-3">
-                              <div>
-                                <label className="text-[8px] font-black text-slate-400 uppercase tracking-wider mb-1 block ml-1">Plan Sprzedaży</label>
-                                <input 
-                                  type="number"
-                                  value={data.pastry_daily_target || ''}
-                                  onChange={e => handleUpdate(loc.id, w, 'pastry_daily_target', e.target.value)}
-                                  className="w-full bg-white px-4 py-3 rounded-xl border border-pink-200 font-black text-sm text-slate-900 outline-none focus:ring-2 focus:ring-pink-500/20"
-                                  placeholder="0.00"
-                                />
-                              </div>
-                              <div>
-                                <label className="text-[8px] font-black text-rose-400 uppercase tracking-wider mb-1 block ml-1">Plan Straty</label>
-                                <input 
-                                  type="number"
-                                  value={data.pastry_loss_target || ''}
-                                  onChange={e => handleUpdate(loc.id, w, 'pastry_loss_target', e.target.value)}
-                                  className="w-full bg-white px-4 py-3 rounded-xl border border-rose-200 font-black text-sm text-rose-600 outline-none focus:ring-2 focus:ring-rose-500/20"
-                                  placeholder="0.00"
-                                />
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </td>
-                    );
-                  })}
+                  {activeWeeks.map(w => (
+                    <th key={w} className="px-6 py-10 text-center min-w-[240px] border-r border-white/10">
+                      <p className="text-[9px] font-black uppercase tracking-[0.4em] text-amber-500/60 mb-1">Tydzień ISO</p>
+                      <p className="text-3xl font-black tracking-tighter">{w}</p>
+                    </th>
+                  ))}
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {locations.map(loc => (
+                  <tr key={loc.id} className="hover:bg-slate-50/80 transition-colors group">
+                    <td className="sticky left-0 z-20 bg-white group-hover:bg-slate-50 px-10 py-10 border-r border-slate-100 shadow-[10px_0_20px_-10px_rgba(0,0,0,0.05)]">
+                      <h3 className="text-lg font-black text-slate-900 uppercase tracking-tight leading-none mb-1.5">{loc.name}</h3>
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{loc.address}</p>
+                    </td>
+
+                    {activeWeeks.map(w => {
+                      const key = `${loc.id}-${w}`;
+                      const data = targets[key] || {};
+                      return (
+                        <td key={w} className="p-6 border-r border-slate-100">
+                          <div className="space-y-6">
+                            <div className="bg-amber-50/50 p-4 rounded-3xl border border-amber-100 space-y-4 shadow-inner">
+                              <p className="text-[9px] font-black text-amber-700 uppercase tracking-widest flex items-center gap-2"><Banknote size={12}/> Piekarnia</p>
+                              <div className="space-y-3">
+                                <div>
+                                  <label className="text-[8px] font-black text-slate-400 uppercase tracking-wider mb-1 block ml-1">Plan Sprzedaży</label>
+                                  <input 
+                                    type="number"
+                                    value={data.bakery_daily_target || ''}
+                                    onChange={e => handleUpdate(loc.id, w, 'bakery_daily_target', e.target.value)}
+                                    className="w-full bg-white px-4 py-3 rounded-xl border border-amber-200 font-black text-sm text-slate-900 outline-none focus:ring-2 focus:ring-amber-500/20 shadow-sm"
+                                    placeholder="0.00"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="text-[8px] font-black text-rose-400 uppercase tracking-wider mb-1 block ml-1">Plan Straty</label>
+                                  <input 
+                                    type="number"
+                                    value={data.bakery_loss_target || ''}
+                                    onChange={e => handleUpdate(loc.id, w, 'bakery_loss_target', e.target.value)}
+                                    className="w-full bg-white px-4 py-3 rounded-xl border border-rose-200 font-black text-sm text-rose-600 outline-none focus:ring-2 focus:ring-rose-500/20 shadow-sm"
+                                    placeholder="0.00"
+                                  />
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="bg-pink-50/50 p-4 rounded-3xl border border-pink-100 space-y-4 shadow-inner">
+                              <p className="text-[9px] font-black text-pink-700 uppercase tracking-widest flex items-center gap-2"><Banknote size={12}/> Cukiernia</p>
+                              <div className="space-y-3">
+                                <div>
+                                  <label className="text-[8px] font-black text-slate-400 uppercase tracking-wider mb-1 block ml-1">Plan Sprzedaży</label>
+                                  <input 
+                                    type="number"
+                                    value={data.pastry_daily_target || ''}
+                                    onChange={e => handleUpdate(loc.id, w, 'pastry_daily_target', e.target.value)}
+                                    className="w-full bg-white px-4 py-3 rounded-xl border border-pink-200 font-black text-sm text-slate-900 outline-none focus:ring-2 focus:ring-pink-500/20 shadow-sm"
+                                    placeholder="0.00"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="text-[8px] font-black text-rose-400 uppercase tracking-wider mb-1 block ml-1">Plan Straty</label>
+                                  <input 
+                                    type="number"
+                                    value={data.pastry_loss_target || ''}
+                                    onChange={e => handleUpdate(loc.id, w, 'pastry_loss_target', e.target.value)}
+                                    className="w-full bg-white px-4 py-3 rounded-xl border border-rose-200 font-black text-sm text-rose-600 outline-none focus:ring-2 focus:ring-rose-500/20 shadow-sm"
+                                    placeholder="0.00"
+                                  />
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+                      );
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </div>
