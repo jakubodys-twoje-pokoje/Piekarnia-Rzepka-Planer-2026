@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { UserProfile, Role } from '../types';
 import { LogIn, Shield, User, AlertCircle, Loader2 } from 'lucide-react';
 import { supabase } from '../supabase';
+import { LOCATIONS } from '../constants';
 
 interface LoginProps {
   onLogin: (user: UserProfile) => void;
@@ -33,43 +34,37 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
       }
 
       if (authData.user) {
-        // Pobieramy TYLKO id i role, bo default_location_id może być problematycznym UUID
-        let { data: profileData, error: profileError } = await supabase
+        const userId = authData.user.id;
+        const userRole: Role = email.includes('admin') ? 'admin' : 'user';
+        const defaultLocId = LOCATIONS[0].id; // Używamy pierwszego UUID z listy
+
+        // UPSERT: Tworzy profil jeśli go nie ma, lub aktualizuje istniejący
+        // Wysyłamy TYLKO id i role, aby uniknąć błędów z brakującymi kolumnami email/name w profiles
+        const { data: profileData, error: profileError } = await supabase
           .from('profiles')
-          .select('id, role')
-          .eq('id', authData.user.id)
+          .upsert({
+            id: userId,
+            role: userRole,
+            default_location_id: defaultLocId
+          }, { onConflict: 'id' })
+          .select('id, role, default_location_id')
           .single();
 
-        // Jeśli profil nie istnieje, tworzymy go z absolutnym minimum
-        if (profileError && (profileError.code === 'PGRST116' || profileError.code === '406')) {
-          const { data: newProfile, error: createError } = await supabase
-            .from('profiles')
-            .insert([{
-              id: authData.user.id,
-              role: email.includes('admin') ? 'admin' : 'user'
-              // default_location_id pominięte, aby nie wysyłać błędnego "1" (nie-UUID)
-            }])
-            .select('id, role')
-            .single();
-            
-          if (createError) {
-            console.error("Błąd tworzenia profilu:", createError);
-            // Nawet jeśli create profilu padnie, wpuszczamy usera z sesji
-            profileData = { id: authData.user.id, role: email.includes('admin') ? 'admin' : 'user' };
-          } else {
-            profileData = newProfile;
-          }
-        } else if (profileError) {
-          // Jeśli inny błąd, też staramy się wpuścić użytkownika
-          profileData = { id: authData.user.id, role: email.includes('admin') ? 'admin' : 'user' };
-        }
-
-        if (profileData) {
+        if (profileError) {
+          console.error("Błąd synchronizacji profilu:", profileError);
+          // Jeśli upsert padnie (np. przez RLS), i tak logujemy usera danymi z sesji
+          onLogin({
+            id: userId,
+            email: authData.user.email || '',
+            role: userRole,
+            default_location_id: defaultLocId,
+          });
+        } else {
           onLogin({
             id: profileData.id,
             email: authData.user.email || '',
-            role: (profileData.role as Role) || 'user',
-            default_location_id: '1', // Domyślna wartość w aplikacji
+            role: (profileData.role as Role) || userRole,
+            default_location_id: profileData.default_location_id || defaultLocId,
           });
         }
       }
@@ -154,7 +149,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
         </div>
 
         <p className="text-center text-slate-400 text-[10px] font-bold uppercase tracking-widest">
-          &copy; 2026 Piekarnia Rzepka &middot; v2.2.3-final-fix
+          &copy; 2026 Piekarnia Rzepka &middot; v2.2.4-uuid-fix
         </p>
       </div>
     </div>

@@ -15,6 +15,7 @@ import AdminReports from './views/AdminReports';
 import AdminLocations from './views/AdminLocations';
 import Login from './views/Login';
 import { supabase } from './supabase';
+import { LOCATIONS } from './constants';
 import { Loader2 } from 'lucide-react';
 
 const App: React.FC = () => {
@@ -53,31 +54,32 @@ const App: React.FC = () => {
 
   const fetchUserProfile = async (userId: string, email: string) => {
     try {
-      // Próba pobrania profilu - ograniczamy się do ID i Roli, aby uniknąć błędów UUID na lokalizacji
+      // Pobieramy tylko ID i rolę - default_location_id bierzemy z bazy lub fallbackujemy na UUID
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, role')
+        .select('id, role, default_location_id')
         .eq('id', userId)
-        .single();
+        .maybeSingle();
       
-      // Jeśli błąd 406 lub brak kolumny, tworzymy profil "ratunkowy"
-      if (error) {
-        console.warn("Profil niepełny lub błąd schematu, stosuję fallback.");
-        const fallbackProfile: UserProfile = {
+      const fallbackRole: Role = email.includes('admin') ? 'admin' : 'user';
+      const defaultUUID = LOCATIONS[0].id; // Używamy UUID z constants.tsx zamiast "1"
+
+      if (error || !data) {
+        const profile: UserProfile = {
           id: userId,
           email: email,
-          role: email.includes('admin') ? 'admin' : 'user',
-          default_location_id: '1' // Domyślny punkt w UI
+          role: fallbackRole,
+          default_location_id: defaultUUID
         };
-        setUser(fallbackProfile);
+        setUser(profile);
         return;
       }
 
       const profile: UserProfile = {
         id: data.id,
         email: email,
-        role: (data.role as Role) || 'user',
-        default_location_id: '1' // Statyczne przypisanie, aby uniknąć błędów UUID z bazy
+        role: (data.role as Role) || fallbackRole,
+        default_location_id: data.default_location_id || defaultUUID
       };
       
       setUser(profile);

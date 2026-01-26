@@ -12,7 +12,8 @@ interface DataEntryProps {
 const DataEntry: React.FC<DataEntryProps> = ({ user }) => {
   const [formData, setFormData] = useState({
     date: new Date().toISOString().split('T')[0],
-    locationId: user.default_location_id || '1',
+    // NIGDY nie używamy "1" jako fallbacku, zawsze UUID z profilu lub stałej
+    locationId: user.default_location_id || LOCATIONS[0].id,
     bakerySales: '',
     bakeryLoss: '',
     pastrySales: '',
@@ -37,11 +38,11 @@ const DataEntry: React.FC<DataEntryProps> = ({ user }) => {
         .from('daily_reports')
         .insert([{
           date: formData.date,
-          location_id: formData.locationId,
-          bakery_sales: parseFloat(formData.bakerySales),
-          bakery_loss: parseFloat(formData.bakeryLoss),
-          pastry_sales: parseFloat(formData.pastrySales),
-          pastry_loss: parseFloat(formData.pastryLoss),
+          location_id: formData.locationId, // To musi być UUID
+          bakery_sales: parseFloat(formData.bakerySales) || 0,
+          bakery_loss: parseFloat(formData.bakeryLoss) || 0,
+          pastry_sales: parseFloat(formData.pastrySales) || 0,
+          pastry_loss: parseFloat(formData.pastryLoss) || 0,
           user_id: user.id
         }]);
 
@@ -57,9 +58,9 @@ const DataEntry: React.FC<DataEntryProps> = ({ user }) => {
       }));
       setTimeout(() => setStatus('idle'), 3000);
     } catch (err: any) {
-      console.error(err);
+      console.error("Save error:", err);
       setStatus('error');
-      setErrorMessage(err.message || 'Wystąpił błąd podczas zapisu.');
+      setErrorMessage(err.message || 'Wystąpił błąd podczas zapisu. Sprawdź format danych.');
     }
   };
 
@@ -111,7 +112,6 @@ const DataEntry: React.FC<DataEntryProps> = ({ user }) => {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Piekarnia Card */}
           <div className="bg-white p-8 rounded-3xl border-2 border-slate-100 shadow-sm space-y-8 relative overflow-hidden group">
             <div className="absolute top-0 right-0 w-24 h-24 bg-amber-50 rounded-full -mr-12 -mt-12 group-hover:scale-150 transition-transform duration-700 opacity-50"></div>
             <div className="flex items-center gap-4 relative z-10">
@@ -140,7 +140,6 @@ const DataEntry: React.FC<DataEntryProps> = ({ user }) => {
             </div>
           </div>
 
-          {/* Cukiernia Card */}
           <div className="bg-white p-8 rounded-3xl border-2 border-slate-100 shadow-sm space-y-8 relative overflow-hidden group">
             <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-50 rounded-full -mr-12 -mt-12 group-hover:scale-150 transition-transform duration-700 opacity-50"></div>
             <div className="flex items-center gap-4 relative z-10">

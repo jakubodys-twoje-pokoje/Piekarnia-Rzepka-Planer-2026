@@ -19,14 +19,15 @@ import {
   BellRing
 } from 'lucide-react';
 
+// Używamy "statycznych" UUID, aby baza danych (typ UUID) je zaakceptowała
 export const LOCATIONS = [
-  { id: '1', name: 'JĘDRZYCHÓW', address: 'ul. Diamentowa 2', status: 'aktywny' },
-  { id: '2', name: 'KUPIECKA', address: 'ul. Kupiecka 15', status: 'aktywny' },
-  { id: '3', name: 'NIEPODLEGŁOŚCI', address: 'al. Niepodległości 22', status: 'aktywny' },
-  { id: '4', name: 'FABRYCZNA', address: 'ul. Fabryczna 4', status: 'aktywny' },
-  { id: '5', name: 'PODGÓRNA', address: 'ul. Podgórna 12', status: 'aktywny' },
-  { id: '6', name: 'ŁĘŻYCA', address: 'ul. Odrzańska 1', status: 'aktywny' },
-  { id: '7', name: 'PLAC POCZTOWY', address: 'Plac Pocztowy 5', status: 'aktywny' }
+  { id: '00000000-0000-0000-0000-000000000001', name: 'JĘDRZYCHÓW', address: 'ul. Diamentowa 2', status: 'aktywny' },
+  { id: '00000000-0000-0000-0000-000000000002', name: 'KUPIECKA', address: 'ul. Kupiecka 15', status: 'aktywny' },
+  { id: '00000000-0000-0000-0000-000000000003', name: 'NIEPODLEGŁOŚCI', address: 'al. Niepodległości 22', status: 'aktywny' },
+  { id: '00000000-0000-0000-0000-000000000004', name: 'FABRYCZNA', address: 'ul. Fabryczna 4', status: 'aktywny' },
+  { id: '00000000-0000-0000-0000-000000000005', name: 'PODGÓRNA', address: 'ul. Podgórna 12', status: 'aktywny' },
+  { id: '00000000-0000-0000-0000-000000000006', name: 'ŁĘŻYCA', address: 'ul. Odrzańska 1', status: 'aktywny' },
+  { id: '00000000-0000-0000-0000-000000000007', name: 'PLAC POCZTOWY', address: 'Plac Pocztowy 5', status: 'aktywny' }
 ];
 
 export const MONTHS = [
@@ -44,10 +45,8 @@ export interface MenuItem {
 
 export const MENU_ITEMS: MenuItem[] = [
   { id: 'dashboard', label: 'Panel główny', icon: <LayoutDashboard size={20} />, roles: ['admin', 'user'] },
-  
   { id: 'entry', label: 'Nowy raport', icon: <PlusCircle size={20} />, roles: ['user'] },
   { id: 'history', label: 'Archiwum wpisów', icon: <History size={20} />, roles: ['user'] },
-
   { 
     id: 'analytics-group', 
     label: 'Analityka i Wyniki', 
