@@ -25,23 +25,18 @@ const App: React.FC = () => {
 
   useEffect(() => {
     const initAuth = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session?.user) {
-          await fetchUserProfile(session.user.id, session.user.email || '');
-        }
-      } catch (err) {
-        console.error("Auth init error:", err);
-      } finally {
-        setInitializing(false);
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        await syncUser(session.user.id, session.user.email || '');
       }
+      setInitializing(false);
     };
 
     initAuth();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === 'SIGNED_IN' && session?.user) {
-        await fetchUserProfile(session.user.id, session.user.email || '');
+        await syncUser(session.user.id, session.user.email || '');
       } else if (event === 'SIGNED_OUT') {
         setUser(null);
         setActiveTab('dashboard');
@@ -51,39 +46,40 @@ const App: React.FC = () => {
     return () => subscription.unsubscribe();
   }, []);
 
-  const fetchUserProfile = async (userId: string, email: string) => {
+  const syncUser = async (userId: string, email: string) => {
     try {
-      const { data, error } = await supabase
+      // 1. Sprawdź czy profil istnieje
+      let { data: profile, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
         .maybeSingle();
-      
-      const isAdmin = email.includes('admin');
-      const role: Role = isAdmin ? 'admin' : (data?.role as Role || 'user');
 
-      // Jeśli profilu nie ma, tworzymy go (wymagane przy pierwszym logowaniu)
-      if (!data) {
+      const isAdmin = email.includes('admin') || profile?.role === 'admin';
+      const role: Role = isAdmin ? 'admin' : 'user';
+
+      // 2. Jeśli nie ma profilu, stwórz go
+      if (!profile) {
         const { data: locations } = await supabase.from('locations').select('id').limit(1);
         const defaultLocId = locations?.[0]?.id || null;
 
-        await supabase.from('profiles').insert({
-          id: userId,
-          role: role,
-          default_location_id: defaultLocId
-        });
-
-        setUser({ id: userId, email, role, default_location_id: defaultLocId });
-      } else {
-        setUser({ 
-          id: userId, 
-          email, 
-          role: role, 
-          default_location_id: data.default_location_id 
-        });
+        const { data: newProfile, error: insertError } = await supabase
+          .from('profiles')
+          .insert({ id: userId, role, default_location_id: defaultLocId })
+          .select()
+          .single();
+        
+        profile = newProfile;
       }
+
+      setUser({
+        id: userId,
+        email,
+        role: profile?.role || role,
+        default_location_id: profile?.default_location_id
+      });
     } catch (err) {
-      console.error("Profile sync error:", err);
+      console.error("Critical User Sync Error:", err);
     }
   };
 
@@ -93,14 +89,14 @@ const App: React.FC = () => {
 
   if (initializing) {
     return (
-      <div className="h-screen w-full flex flex-col items-center justify-center bg-slate-50 gap-4">
-        <Loader2 size={40} className="animate-spin text-amber-600" />
-        <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">Restartowanie systemu Rzepka...</p>
+      <div className="h-screen w-full flex flex-col items-center justify-center bg-slate-50">
+        <Loader2 size={40} className="animate-spin text-amber-600 mb-4" />
+        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Inicjalizacja Systemu Rzepka...</p>
       </div>
     );
   }
 
-  if (!user) return <Login onLogin={setUser} />;
+  if (!user) return <Login onLogin={() => {}} />;
 
   const renderContent = () => {
     switch (activeTab) {
@@ -128,7 +124,7 @@ const App: React.FC = () => {
         userRole={user.role} 
         onLogout={handleLogout}
       />
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+      <div className="flex-1 flex flex-col min-w-0">
         <Header onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)} user={user} />
         <main className="flex-1 overflow-y-auto p-4 md:p-8">
           <div className="max-w-7xl mx-auto">{renderContent()}</div>
