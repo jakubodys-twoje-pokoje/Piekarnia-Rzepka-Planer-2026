@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { UserProfile, Role } from '../types';
 import { LogIn, Shield, User, AlertCircle, Loader2 } from 'lucide-react';
@@ -34,17 +35,16 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
       if (authData.user) {
         let { data: profileData, error: profileError } = await supabase
           .from('profiles')
-          .select('*')
+          .select('id, role, default_location_id')
           .eq('id', authData.user.id)
           .single();
 
-        // Jeśli profil nie istnieje (pierwsze logowanie), stwórz go
         if (profileError && profileError.code === 'PGRST116') {
+          // Tworzymy profil bez kolumny email, bo rzuca błąd w schemacie
           const { data: newProfile, error: createError } = await supabase
             .from('profiles')
             .insert([{
               id: authData.user.id,
-              email: authData.user.email,
               role: 'user',
               default_location_id: '1'
             }])
@@ -60,7 +60,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
         if (profileData) {
           onLogin({
             id: profileData.id,
-            email: profileData.email,
+            email: authData.user.email || '',
             role: profileData.role as Role,
             default_location_id: profileData.default_location_id,
           });
@@ -77,7 +77,6 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
     <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
       <div className="max-w-md w-full space-y-8">
         <div className="text-center animate-in fade-in slide-in-from-bottom-4 duration-700">
-          {/* Zmniejszony padding p-1.5 zamiast p-3 dla lepszego balansu */}
           <div className="w-28 h-28 bg-white rounded-[2.5rem] p-1.5 flex items-center justify-center mx-auto mb-6 shadow-2xl shadow-amber-600/20 rotate-3 overflow-hidden border-4 border-amber-600">
             <img 
               src="https://stronyjakubowe.pl/wp-content/uploads/2026/01/89358602_111589903786829_6313621308307406848_n.jpg" 
@@ -148,7 +147,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
         </div>
 
         <p className="text-center text-slate-400 text-[10px] font-bold uppercase tracking-widest">
-          &copy; 2026 Piekarnia Rzepka &middot; v2.2.1-stable
+          &copy; 2026 Piekarnia Rzepka &middot; v2.2.2-stable
         </p>
       </div>
     </div>

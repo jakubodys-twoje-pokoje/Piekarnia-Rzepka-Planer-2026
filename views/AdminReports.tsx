@@ -20,10 +20,7 @@ const AdminReports: React.FC = () => {
     try {
       let query = supabase
         .from('daily_reports')
-        .select(`
-          *,
-          profiles (email)
-        `)
+        .select(`*`) // Usunięto profiles(email)
         .eq('date', selectedDate);
 
       if (viewScope !== 'global') {
@@ -37,7 +34,7 @@ const AdminReports: React.FC = () => {
       const enrichedData = data.map(report => ({
         ...report,
         location_name: LOCATIONS.find(l => l.id === report.location_id)?.name || 'Nieznany',
-        user_email: report.profiles?.email || 'N/A'
+        user_email: 'Pracownik #' + report.user_id.substring(0, 5) // Fallback zamiast e-maila
       }));
 
       setReports(enrichedData);
@@ -86,7 +83,6 @@ const AdminReports: React.FC = () => {
 
   return (
     <div className="space-y-8 pb-20">
-      {/* Modal korekty */}
       {editModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[100] flex items-center justify-center p-4">
           <div className="bg-white w-full max-w-2xl rounded-[3rem] shadow-2xl overflow-hidden animate-in zoom-in duration-200">
@@ -140,7 +136,6 @@ const AdminReports: React.FC = () => {
         </div>
       )}
 
-      {/* Kontrolki filtrowania */}
       <div className="bg-white p-6 rounded-[2.5rem] border border-slate-200 shadow-sm flex flex-col xl:flex-row xl:items-center justify-between gap-6">
         <div className="flex items-center gap-4">
            <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${viewScope === 'global' ? 'bg-slate-900 text-white' : 'bg-amber-100 text-amber-700'}`}>
@@ -169,13 +164,12 @@ const AdminReports: React.FC = () => {
         </div>
       </div>
 
-      {/* Tabela wyników */}
       <div className="bg-white rounded-[3rem] border border-slate-200 shadow-sm overflow-hidden min-h-[500px] relative">
         {loading ? (
           <div className="absolute inset-0 bg-white/50 backdrop-blur-sm flex items-center justify-center z-10">
             <div className="flex flex-col items-center gap-4">
                <div className="w-12 h-12 border-4 border-slate-100 border-t-amber-500 rounded-full animate-spin"></div>
-               <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Pobieranie danych z bazy...</p>
+               <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Pobieranie danych...</p>
             </div>
           </div>
         ) : null}
@@ -235,7 +229,7 @@ const AdminReports: React.FC = () => {
           {reports.length === 0 && !loading && (
             <div className="py-20 flex flex-col items-center justify-center text-slate-300">
                <AlertTriangle size={48} className="mb-4" />
-               <p className="text-xs font-black uppercase tracking-widest">Brak raportów dla wybranej daty</p>
+               <p className="text-xs font-black uppercase tracking-widest">Brak raportów</p>
             </div>
           )}
         </div>

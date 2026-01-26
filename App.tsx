@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { UserProfile, Role } from './types';
 import Sidebar from './components/Sidebar';
@@ -23,12 +24,11 @@ const App: React.FC = () => {
   const [initializing, setInitializing] = useState(true);
 
   useEffect(() => {
-    // 1. Sprawdzenie aktualnej sesji przy starcie
     const initAuth = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (session?.user) {
-          await fetchUserProfile(session.user.id);
+          await fetchUserProfile(session.user.id, session.user.email || '');
         }
       } catch (err) {
         console.error("Auth initialization error:", err);
@@ -39,11 +39,9 @@ const App: React.FC = () => {
 
     initAuth();
 
-    // 2. Subskrypcja zmian stanu autoryzacji (real-time)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log(`[AUTH] Event: ${event}`);
       if (event === 'SIGNED_IN' && session?.user) {
-        await fetchUserProfile(session.user.id);
+        await fetchUserProfile(session.user.id, session.user.email || '');
       } else if (event === 'SIGNED_OUT') {
         setUser(null);
         localStorage.removeItem('user_profile');
@@ -53,18 +51,19 @@ const App: React.FC = () => {
     return () => subscription.unsubscribe();
   }, []);
 
-  const fetchUserProfile = async (userId: string) => {
+  const fetchUserProfile = async (userId: string, email: string) => {
     try {
+      // Pobieramy dane z profiles, ale nie prosimy o kolumnę email, która rzuca błąd
       const { data, error } = await supabase
         .from('profiles')
-        .select('*')
+        .select('id, role, default_location_id')
         .eq('id', userId)
         .single();
       
       if (data) {
         const profile: UserProfile = {
           id: data.id,
-          email: data.email,
+          email: email, // E-mail bierzemy z sesji auth, nie z tabeli profiles
           role: data.role as Role,
           default_location_id: data.default_location_id,
         };
@@ -81,7 +80,6 @@ const App: React.FC = () => {
       await supabase.auth.signOut();
     } catch (err) {
       console.error("Sign out error:", err);
-      // Wymuszenie czyszczenia stanu jeśli API zawiedzie
       setUser(null);
     }
   };
