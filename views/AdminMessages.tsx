@@ -23,12 +23,17 @@ const AdminMessages: React.FC<AdminMessagesProps> = ({ user }) => {
     try {
       const [{ data: locData }, { data: msgData }] = await Promise.all([
         supabase.from('locations').select('*').order('name'),
-        // Fix: Explicitly name the join relationship to avoid 400 Error
-        supabase.from('messages').select('*, sender:profiles(first_name, last_name, role)').order('created_at', { ascending: false })
+        // Zmieniona składnia: profiles(...) zamiast sender:profiles(...) dla lepszej kompatybilności
+        supabase.from('messages').select('*, profiles(first_name, last_name, role)').order('created_at', { ascending: false })
       ]);
 
       setLocations(locData || []);
-      setMessages(msgData || []);
+      // Mapujemy dane, aby pasowały do reszty komponentu (przypisujemy profiles do sender)
+      const mappedMessages = (msgData || []).map(m => ({
+        ...m,
+        sender: m.profiles
+      }));
+      setMessages(mappedMessages);
     } catch (err) {
       console.error("Messages fetch error:", err);
     } finally {
@@ -181,6 +186,12 @@ const AdminMessages: React.FC<AdminMessagesProps> = ({ user }) => {
                 </div>
               </div>
             ))}
+            {!loading && filteredMessages.length === 0 && (
+              <div className="bg-white p-20 rounded-[3rem] border border-dashed border-slate-200 text-center">
+                 <MessageSquare size={48} className="mx-auto text-slate-200 mb-4" />
+                 <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Brak wiadomości w tej sekcji</p>
+              </div>
+            )}
           </div>
         )}
       </div>
