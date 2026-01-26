@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { 
   TrendingUp, TrendingDown, Download, Calendar, Layers, ChevronDown, ChevronUp, 
-  MapPin, Loader2, Zap, BarChart3, PieChart, Activity, Target, ArrowRight
+  MapPin, Loader2, Zap, BarChart3, PieChart, Activity, Target, ArrowRight, Eye
 } from 'lucide-react';
 import { supabase } from '../supabase';
 import { MONTHS } from '../constants';
@@ -87,7 +87,6 @@ const AdminReportsAdvanced: React.FC = () => {
       const bLoss = qReps.reduce((s, r) => s + (r.bakery_loss || 0), 0);
       const pLoss = qReps.reduce((s, r) => s + (r.pastry_loss || 0), 0);
 
-      // Rozbicie na miesiące dla dropdownu
       const monthsBreakdown = [startMonth, startMonth + 1, startMonth + 2].map(mIdx => {
         const mReps = qReps.filter(r => new Date(r.date).getMonth() === mIdx);
         return {
@@ -219,7 +218,10 @@ const AdminReportsAdvanced: React.FC = () => {
            <div key={item.id} className="bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-sm hover:border-amber-500/30 transition-all">
               <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
                 <div className="flex items-center gap-6">
-                  <div className="w-14 h-14 bg-slate-50 rounded-2xl flex items-center justify-center font-black text-slate-900 shadow-inner">{item.label}</div>
+                  <div className="w-14 h-14 bg-slate-50 rounded-2xl flex items-center justify-center font-black text-slate-900 shadow-inner">
+                    {/* Zmiana: Badge pokazuje ID (np Q1) zamiast powtarzania pełnej nazwy */}
+                    {mode === 'quarterly' ? item.id : item.label}
+                  </div>
                   <div>
                     <h4 className="text-xl font-black text-slate-900 uppercase tracking-tight leading-none mb-1">
                       {mode === 'monthly' ? `Dzień ${item.label}` : mode === 'yearly' ? item.id : item.label}
@@ -238,8 +240,14 @@ const AdminReportsAdvanced: React.FC = () => {
                 </div>
 
                 {item.details && item.details.length > 0 && (
-                  <button onClick={() => setExpandedId(expandedId === item.id ? null : item.id)} className="p-3 bg-slate-900 text-white rounded-xl hover:bg-amber-600 transition-all shadow-lg">
-                    {expandedId === item.id ? <ChevronUp size={20}/> : <ChevronDown size={20}/>}
+                  <button 
+                    onClick={() => setExpandedId(expandedId === item.id ? null : item.id)} 
+                    className={`flex items-center gap-3 px-6 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all shadow-lg ${
+                      expandedId === item.id ? 'bg-amber-600 text-white' : 'bg-slate-900 text-white hover:bg-amber-500'
+                    }`}
+                  >
+                    {expandedId === item.id ? <ChevronUp size={16}/> : <Eye size={16}/>}
+                    {expandedId === item.id ? 'Zamknij' : 'Szczegóły'}
                   </button>
                 )}
               </div>
@@ -247,15 +255,26 @@ const AdminReportsAdvanced: React.FC = () => {
               {expandedId === item.id && (
                 <div className="mt-8 pt-8 border-t border-slate-100 animate-in slide-in-from-top-4 duration-300">
                    {mode === 'quarterly' ? (
-                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                         {item.details.map((m: any, idx: number) => (
-                          <div key={idx} className="bg-slate-50 p-6 rounded-2xl border border-slate-100 relative group">
-                             <div className="absolute top-4 right-4 text-amber-500 opacity-20"><ArrowRight size={20}/></div>
-                             <p className="text-xs font-black text-slate-900 uppercase tracking-widest mb-4">{m.name}</p>
-                             <div className="space-y-2">
-                               <div className="flex justify-between text-[10px] font-bold"><span className="text-slate-400 uppercase">Przychód</span><span className="text-slate-900">{m.sales.toLocaleString()} zł</span></div>
-                               <div className="flex justify-between text-[10px] font-bold"><span className="text-slate-400 uppercase">Strata</span><span className="text-rose-600">{m.loss.toLocaleString()} zł</span></div>
-                               <div className="pt-2 border-t border-slate-200 flex justify-between text-[10px] font-black"><span className="text-slate-400 uppercase">Waste %</span><span className="text-slate-900">{m.sales > 0 ? ((m.loss / m.sales) * 100).toFixed(1) : 0}%</span></div>
+                          <div key={idx} className="bg-slate-50 p-6 rounded-[2rem] border border-slate-100 relative group overflow-hidden">
+                             <div className="absolute -right-4 -top-4 w-16 h-16 bg-amber-500/5 rounded-full group-hover:scale-150 transition-transform"></div>
+                             <p className="text-[10px] font-black text-amber-600 uppercase tracking-widest mb-4 flex items-center gap-2">
+                                <Calendar size={12}/> {m.name}
+                             </p>
+                             <div className="space-y-3">
+                               <div className="flex justify-between items-end">
+                                 <span className="text-[8px] font-black text-slate-400 uppercase">Przychód</span>
+                                 <span className="text-sm font-black text-slate-900">{m.sales.toLocaleString()} zł</span>
+                               </div>
+                               <div className="flex justify-between items-end">
+                                 <span className="text-[8px] font-black text-slate-400 uppercase">Strata</span>
+                                 <span className="text-sm font-black text-rose-600">{m.loss.toLocaleString()} zł</span>
+                               </div>
+                               <div className="pt-3 border-t border-slate-200 flex justify-between items-center">
+                                 <span className="text-[8px] font-black text-slate-400 uppercase">Wskaźnik Waste</span>
+                                 <span className="text-xs font-black text-slate-900">{m.sales > 0 ? ((m.loss / m.sales) * 100).toFixed(1) : 0}%</span>
+                               </div>
                              </div>
                           </div>
                         ))}
@@ -263,7 +282,7 @@ const AdminReportsAdvanced: React.FC = () => {
                    ) : mode === 'monthly' ? (
                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         {item.details.map((r: any) => (
-                          <div key={r.id} className="bg-slate-50 p-5 rounded-2xl border border-slate-100">
+                          <div key={r.id} className="bg-slate-50 p-5 rounded-2xl border border-slate-100 hover:bg-white hover:shadow-md transition-all">
                              <div className="flex items-center gap-2 mb-4"><MapPin size={12} className="text-amber-500" /><span className="text-[10px] font-black text-slate-900 uppercase">{locations.find(l => l.id === r.location_id)?.name}</span></div>
                              <div className="flex justify-between text-xs font-bold text-slate-500"><span>S: {(r.bakery_sales + r.pastry_sales).toLocaleString()} zł</span><span className="text-rose-500">L: {(r.bakery_loss + r.pastry_loss).toLocaleString()} zł</span></div>
                           </div>
