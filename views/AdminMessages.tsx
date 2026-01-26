@@ -23,15 +23,31 @@ const AdminMessages: React.FC<AdminMessagesProps> = ({ user }) => {
     try {
       const [{ data: locData }, { data: msgData }] = await Promise.all([
         supabase.from('locations').select('*').order('name'),
-        // Zmieniona składnia: profiles(...) zamiast sender:profiles(...) dla lepszej kompatybilności
-        supabase.from('messages').select('*, profiles(first_name, last_name, role)').order('created_at', { ascending: false })
+        supabase.from('messages').select('*').order('created_at', { ascending: false })
       ]);
 
       setLocations(locData || []);
-      // Mapujemy dane, aby pasowały do reszty komponentu (przypisujemy profiles do sender)
+
+      // Pobierz profile nadawców osobno
+      const senderIds = [...new Set((msgData || []).map(m => m.sender_id).filter(Boolean))];
+      let profilesMap: Record<string, any> = {};
+
+      if (senderIds.length > 0) {
+        const { data: profilesData } = await supabase
+          .from('profiles')
+          .select('id, first_name, last_name, role')
+          .in('id', senderIds);
+
+        profilesMap = (profilesData || []).reduce((acc, p) => {
+          acc[p.id] = p;
+          return acc;
+        }, {} as Record<string, any>);
+      }
+
+      // Mapuj wiadomości z danymi nadawców
       const mappedMessages = (msgData || []).map(m => ({
         ...m,
-        sender: m.profiles
+        sender: m.sender_id ? profilesMap[m.sender_id] : null
       }));
       setMessages(mappedMessages);
     } catch (err) {

@@ -24,26 +24,30 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, activeTab, onTabChange, userR
 
       const { data: profile } = await supabase.from('profiles').select('default_location_id').eq('id', user.id).maybeSingle();
 
-      // Użycie head: true z count: 'exact' - pobiera tylko liczbę bez danych
-      let query = supabase.from('messages').select('*', { count: 'exact', head: true }).eq('is_read', false);
+      // Pobierz wszystkie wiadomości i filtruj w JS (unika problemów z brakującymi kolumnami)
+      const { data: messages, error } = await supabase
+        .from('messages')
+        .select('id, is_read, to_admin, recipient_location_id, sender_id');
 
-      if (userRole === 'admin') {
-        query = query.eq('to_admin', true);
-      } else {
-        const locId = profile?.default_location_id;
-        if (locId) {
-          query = query.or(`recipient_location_id.is.null,recipient_location_id.eq.${locId}`).eq('to_admin', false);
-        } else {
-          query = query.is('recipient_location_id', null).eq('to_admin', false);
-        }
-      }
-
-      const { count, error } = await query;
       if (error) {
         console.warn("Sidebar count error:", error.message);
         return;
       }
-      setUnreadCount(count || 0);
+
+      const locId = profile?.default_location_id;
+      const filtered = (messages || []).filter(msg => {
+        if (msg.is_read) return false;
+        if (msg.sender_id === user.id) return false;
+
+        if (userRole === 'admin') {
+          return msg.to_admin === true;
+        } else {
+          const isForLocation = msg.recipient_location_id === null || msg.recipient_location_id === locId;
+          return isForLocation && msg.to_admin === false;
+        }
+      });
+
+      setUnreadCount(filtered.length);
     } catch (e) {
       console.warn("Sidebar count fetch failed", e);
     }
