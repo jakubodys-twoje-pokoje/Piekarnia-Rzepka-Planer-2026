@@ -1,15 +1,14 @@
 
 import React, { useState } from 'react';
-import { UserProfile, Role } from '../types';
+import { UserProfile } from '../types';
 import { LogIn, Shield, User, AlertCircle, Loader2 } from 'lucide-react';
 import { supabase } from '../supabase';
-import { LOCATIONS } from '../constants';
 
 interface LoginProps {
   onLogin: (user: UserProfile) => void;
 }
 
-const Login: React.FC<LoginProps> = ({ onLogin }) => {
+const Login: React.FC<LoginProps> = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -21,55 +20,13 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
     setError(null);
     
     try {
-      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+      const { error: authError } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
-
-      if (authError) {
-        if (authError.message.includes('Invalid login credentials')) {
-          throw new Error('Niepoprawny e-mail lub hasło.');
-        }
-        throw authError;
-      }
-
-      if (authData.user) {
-        const userId = authData.user.id;
-        const userRole: Role = email.includes('admin') ? 'admin' : 'user';
-        const defaultLocId = LOCATIONS[0].id; // Używamy pierwszego UUID z listy
-
-        // UPSERT: Tworzy profil jeśli go nie ma, lub aktualizuje istniejący
-        // Wysyłamy TYLKO id i role, aby uniknąć błędów z brakującymi kolumnami email/name w profiles
-        const { data: profileData, error: profileError } = await supabase
-          .from('profiles')
-          .upsert({
-            id: userId,
-            role: userRole,
-            default_location_id: defaultLocId
-          }, { onConflict: 'id' })
-          .select('id, role, default_location_id')
-          .single();
-
-        if (profileError) {
-          console.error("Błąd synchronizacji profilu:", profileError);
-          // Jeśli upsert padnie (np. przez RLS), i tak logujemy usera danymi z sesji
-          onLogin({
-            id: userId,
-            email: authData.user.email || '',
-            role: userRole,
-            default_location_id: defaultLocId,
-          });
-        } else {
-          onLogin({
-            id: profileData.id,
-            email: authData.user.email || '',
-            role: (profileData.role as Role) || userRole,
-            default_location_id: profileData.default_location_id || defaultLocId,
-          });
-        }
-      }
+      if (authError) throw authError;
     } catch (err: any) {
-      setError(err.message || 'Wystąpił nieoczekiwany błąd logowania.');
+      setError(err.message === 'Invalid login credentials' ? 'Niepoprawny e-mail lub hasło.' : err.message);
     } finally {
       setLoading(false);
     }
@@ -78,31 +35,31 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
   return (
     <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
       <div className="max-w-md w-full space-y-8">
-        <div className="text-center animate-in fade-in slide-in-from-bottom-4 duration-700">
-          <div className="w-28 h-28 bg-white rounded-[2.5rem] p-1.5 flex items-center justify-center mx-auto mb-6 shadow-2xl shadow-amber-600/20 rotate-3 overflow-hidden border-4 border-amber-600">
+        <div className="text-center">
+          <div className="w-24 h-24 bg-white rounded-3xl p-4 flex items-center justify-center mx-auto mb-6 shadow-xl border-4 border-amber-600 rotate-3 overflow-hidden">
             <img 
               src="https://stronyjakubowe.pl/wp-content/uploads/2026/01/89358602_111589903786829_6313621308307406848_n.jpg" 
-              alt="Piekarnia Rzepka Logo" 
+              alt="Logo" 
               className="w-full h-full object-contain"
             />
           </div>
-          <h1 className="text-4xl font-black text-slate-900 mb-2 tracking-tighter text-center">Piekarnia Rzepka</h1>
-          <p className="text-slate-400 font-bold uppercase text-[10px] tracking-[0.3em] text-center">System Zarządzania Przychodami</p>
+          <h1 className="text-3xl font-black text-slate-900 tracking-tight">Piekarnia Rzepka</h1>
+          <p className="text-slate-400 font-bold uppercase text-[9px] tracking-[0.3em]">Revenue Manager v3.0</p>
         </div>
 
-        <div className="bg-white rounded-[3rem] p-10 border border-slate-200 shadow-2xl relative overflow-hidden animate-in zoom-in duration-500 delay-100">
-          <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-amber-500 to-amber-600"></div>
+        <div className="bg-white rounded-[2.5rem] p-10 border border-slate-200 shadow-2xl relative overflow-hidden">
+          <div className="absolute top-0 left-0 w-full h-1.5 bg-amber-600"></div>
           
           <form onSubmit={handleSubmit} className="space-y-6">
             {error && (
-              <div className="p-4 bg-rose-50 border border-rose-100 rounded-2xl flex items-center gap-3 text-rose-600 text-xs font-bold animate-in shake duration-300">
+              <div className="p-4 bg-rose-50 border border-rose-100 rounded-2xl flex items-center gap-3 text-rose-600 text-xs font-bold">
                 <AlertCircle size={18} />
                 {error}
               </div>
             )}
 
             <div className="space-y-2">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">E-mail (@rzepka.pl)</label>
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Konto Pracownika</label>
               <div className="relative">
                 <User size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" />
                 <input
@@ -110,14 +67,14 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                   placeholder="nazwisko@rzepka.pl"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full pl-12 pr-6 py-5 bg-slate-50 border-2 border-slate-100 rounded-3xl focus:border-amber-500 focus:bg-white outline-none transition-all font-bold text-slate-700"
+                  className="w-full pl-12 pr-6 py-4 bg-slate-50 border-2 border-slate-100 rounded-2xl focus:border-amber-500 focus:bg-white outline-none transition-all font-bold text-slate-700"
                   required
                 />
               </div>
             </div>
 
             <div className="space-y-2">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Hasło</label>
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Klucz Dostępu</label>
               <div className="relative">
                 <Shield size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" />
                 <input
@@ -125,7 +82,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                   placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full pl-12 pr-6 py-5 bg-slate-50 border-2 border-slate-100 rounded-3xl focus:border-amber-500 focus:bg-white outline-none transition-all font-bold text-slate-700"
+                  className="w-full pl-12 pr-6 py-4 bg-slate-50 border-2 border-slate-100 rounded-2xl focus:border-amber-500 focus:bg-white outline-none transition-all font-bold text-slate-700"
                   required
                 />
               </div>
@@ -134,23 +91,13 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-slate-900 text-white py-6 rounded-[2rem] font-black text-xs uppercase tracking-[0.2em] flex items-center justify-center gap-3 hover:bg-amber-600 transition-all shadow-xl active:scale-[0.98] disabled:opacity-50"
+              className="w-full bg-slate-900 text-white py-5 rounded-2xl font-black text-xs uppercase tracking-[0.2em] flex items-center justify-center gap-3 hover:bg-amber-600 transition-all shadow-xl disabled:opacity-50"
             >
-              {loading ? (
-                <Loader2 size={20} className="animate-spin" />
-              ) : (
-                <>
-                  <LogIn size={20} />
-                  Zaloguj system
-                </>
-              )}
+              {loading ? <Loader2 size={20} className="animate-spin" /> : <LogIn size={20} />}
+              ZALOGUJ DO SYSTEMU
             </button>
           </form>
         </div>
-
-        <p className="text-center text-slate-400 text-[10px] font-bold uppercase tracking-widest">
-          &copy; 2026 Piekarnia Rzepka &middot; v2.2.4-uuid-fix
-        </p>
       </div>
     </div>
   );

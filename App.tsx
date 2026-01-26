@@ -15,7 +15,6 @@ import AdminReports from './views/AdminReports';
 import AdminLocations from './views/AdminLocations';
 import Login from './views/Login';
 import { supabase } from './supabase';
-import { LOCATIONS } from './constants';
 import { Loader2 } from 'lucide-react';
 
 const App: React.FC = () => {
@@ -32,7 +31,7 @@ const App: React.FC = () => {
           await fetchUserProfile(session.user.id, session.user.email || '');
         }
       } catch (err) {
-        console.error("Auth initialization error:", err);
+        console.error("Auth init error:", err);
       } finally {
         setInitializing(false);
       }
@@ -45,7 +44,7 @@ const App: React.FC = () => {
         await fetchUserProfile(session.user.id, session.user.email || '');
       } else if (event === 'SIGNED_OUT') {
         setUser(null);
-        localStorage.removeItem('user_profile');
+        setActiveTab('dashboard');
       }
     });
 
@@ -54,61 +53,54 @@ const App: React.FC = () => {
 
   const fetchUserProfile = async (userId: string, email: string) => {
     try {
-      // Pobieramy tylko ID i rolę - default_location_id bierzemy z bazy lub fallbackujemy na UUID
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, role, default_location_id')
+        .select('*')
         .eq('id', userId)
         .maybeSingle();
       
-      const fallbackRole: Role = email.includes('admin') ? 'admin' : 'user';
-      const defaultUUID = LOCATIONS[0].id; // Używamy UUID z constants.tsx zamiast "1"
+      const isAdmin = email.includes('admin');
+      const role: Role = isAdmin ? 'admin' : (data?.role as Role || 'user');
 
-      if (error || !data) {
-        const profile: UserProfile = {
+      // Jeśli profilu nie ma, tworzymy go (wymagane przy pierwszym logowaniu)
+      if (!data) {
+        const { data: locations } = await supabase.from('locations').select('id').limit(1);
+        const defaultLocId = locations?.[0]?.id || null;
+
+        await supabase.from('profiles').insert({
           id: userId,
-          email: email,
-          role: fallbackRole,
-          default_location_id: defaultUUID
-        };
-        setUser(profile);
-        return;
-      }
+          role: role,
+          default_location_id: defaultLocId
+        });
 
-      const profile: UserProfile = {
-        id: data.id,
-        email: email,
-        role: (data.role as Role) || fallbackRole,
-        default_location_id: data.default_location_id || defaultUUID
-      };
-      
-      setUser(profile);
-      localStorage.setItem('user_profile', JSON.stringify(profile));
+        setUser({ id: userId, email, role, default_location_id: defaultLocId });
+      } else {
+        setUser({ 
+          id: userId, 
+          email, 
+          role: role, 
+          default_location_id: data.default_location_id 
+        });
+      }
     } catch (err) {
-      console.error("Krytyczny błąd profilu:", err);
+      console.error("Profile sync error:", err);
     }
   };
 
   const handleLogout = async () => {
-    try {
-      await supabase.auth.signOut();
-    } catch (err) {
-      setUser(null);
-    }
+    await supabase.auth.signOut();
   };
 
   if (initializing) {
     return (
       <div className="h-screen w-full flex flex-col items-center justify-center bg-slate-50 gap-4">
         <Loader2 size={40} className="animate-spin text-amber-600" />
-        <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">Restartowanie modułów Rzepka...</p>
+        <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">Restartowanie systemu Rzepka...</p>
       </div>
     );
   }
 
-  if (!user) {
-    return <Login onLogin={(u) => setUser(u)} />;
-  }
+  if (!user) return <Login onLogin={setUser} />;
 
   const renderContent = () => {
     switch (activeTab) {
@@ -137,14 +129,9 @@ const App: React.FC = () => {
         onLogout={handleLogout}
       />
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        <Header 
-          onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)} 
-          user={user} 
-        />
+        <Header onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)} user={user} />
         <main className="flex-1 overflow-y-auto p-4 md:p-8">
-          <div className="max-w-7xl mx-auto">
-            {renderContent()}
-          </div>
+          <div className="max-w-7xl mx-auto">{renderContent()}</div>
         </main>
       </div>
     </div>
