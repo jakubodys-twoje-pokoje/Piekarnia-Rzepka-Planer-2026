@@ -109,7 +109,8 @@ const App: React.FC = () => {
       case 'reports-data': return <AdminReports />;
       case 'budgets': return <AdminBudgets />;
       case 'analytics-simple': return <AdminReportsSimple />;
-      case 'analytics-advanced': return <AdminReportsAdvanced mode="monthly" />;
+      // Fix: Removed 'mode' prop as it is not defined on AdminReportsAdvanced
+      case 'analytics-advanced': return <AdminReportsAdvanced />;
       default: return <Dashboard user={user} />;
     }
   };

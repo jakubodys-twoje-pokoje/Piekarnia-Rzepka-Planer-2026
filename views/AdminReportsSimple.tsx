@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { TrendingUp, TrendingDown, DollarSign, PieChart, Calendar, Globe, MapPin, Loader2, Award, Info } from 'lucide-react';
+import { TrendingUp, TrendingDown, DollarSign, PieChart, Calendar, Globe, MapPin, Loader2, Award, Info, Percent } from 'lucide-react';
 import { supabase } from '../supabase';
 
 const AdminReportsSimple: React.FC = () => {
@@ -80,7 +80,7 @@ const AdminReportsSimple: React.FC = () => {
       <Loader2 className="animate-spin text-amber-500" size={64} />
       <div className="text-center">
         <p className="text-sm font-black text-slate-900 uppercase tracking-widest">Generowanie Przeglądu</p>
-        <p className="text-xs font-bold text-slate-400 mt-2">Analiza danych z {locations.length} punktów sprzedaży...</p>
+        <p className="text-xs font-bold text-slate-400 mt-2">Analiza danych operacyjnych Rzepka...</p>
       </div>
     </div>
   );
@@ -142,100 +142,117 @@ const AdminReportsSimple: React.FC = () => {
           </div>
         </div>
 
-        <div className="bg-slate-900 p-10 rounded-[3rem] shadow-2xl text-white flex flex-col justify-center">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-[10px] font-black text-amber-500 uppercase tracking-widest">Wskaźnik Efektywności</h3>
-            <Info size={14} className="text-white/20" />
+        <div className="bg-slate-900 p-10 rounded-[3rem] shadow-2xl text-white flex flex-col justify-center relative overflow-hidden">
+          <div className="absolute top-0 right-0 p-8 opacity-10">
+             <Percent size={80} />
           </div>
-          <div className="flex items-end gap-3 mb-6">
-            <span className="text-6xl font-black tracking-tighter">{stats.totalSales > 0 ? (100 - stats.lossPercent).toFixed(1) : '0.0'}%</span>
-            <div className={`mb-2 px-3 py-1 rounded-full text-[10px] font-black uppercase ${stats.lossPercent <= 5 ? 'bg-emerald-500' : 'bg-rose-500'}`}>
-              {stats.lossPercent <= 5 ? 'CEL OSIĄGNIĘTY' : 'DO POPRAWY'}
+          <div className="relative z-10">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-[10px] font-black text-amber-500 uppercase tracking-widest">Wskaźnik Waste Ratio</h3>
+              <Info size={14} className="text-white/20" />
             </div>
-          </div>
-          <div className="w-full h-2.5 bg-white/10 rounded-full overflow-hidden">
-             <div className="h-full bg-amber-500 transition-all duration-1000" style={{ width: `${Math.max(10, 100 - stats.lossPercent)}%` }}></div>
+            <div className="flex items-end gap-3 mb-6">
+              <span className="text-6xl font-black tracking-tighter">{stats.lossPercent.toFixed(1)}%</span>
+              <div className={`mb-2 px-3 py-1 rounded-full text-[10px] font-black uppercase ${stats.lossPercent <= 5 ? 'bg-emerald-500' : 'bg-rose-500'}`}>
+                {stats.lossPercent <= 5 ? 'CEL OSIĄGNIĘTY' : 'LIMIT PRZEKROCZONY'}
+              </div>
+            </div>
+            <div className="w-full h-2.5 bg-white/10 rounded-full overflow-hidden">
+               <div className="h-full bg-amber-500 transition-all duration-1000" style={{ width: `${Math.min(stats.lossPercent * 10, 100)}%` }}></div>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Analytics Grid */}
+      {/* Advanced Analytics Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Sales Structure */}
-        <div className="bg-white p-10 rounded-[3.5rem] border border-slate-200 shadow-sm">
+        <div className="bg-white p-10 rounded-[3.5rem] border border-slate-200 shadow-sm hover:border-amber-500/20 transition-all">
           <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest flex items-center gap-3 mb-12">
             <PieChart size={20} className="text-amber-500" /> Podział Sprzedaży
           </h3>
           <div className="space-y-10">
             <div className="space-y-3">
               <div className="flex justify-between items-end">
-                <span className="text-xs font-black text-slate-400 uppercase">Piekarnia</span>
+                <span className="text-xs font-black text-slate-400 uppercase">Piekarnia (Chleby, Bułki)</span>
                 <span className="text-xl font-black text-slate-900">{stats.bakerySales.toLocaleString()} zł</span>
               </div>
               <div className="h-4 bg-slate-50 rounded-full overflow-hidden p-1">
-                <div className="h-full bg-amber-500 rounded-full transition-all duration-700" style={{ width: `${stats.totalSales > 0 ? (stats.bakerySales / stats.totalSales) * 100 : 0}%` }}></div>
+                <div className="h-full bg-amber-500 rounded-full transition-all duration-700 shadow-md" style={{ width: `${stats.totalSales > 0 ? (stats.bakerySales / stats.totalSales) * 100 : 0}%` }}></div>
               </div>
             </div>
             <div className="space-y-3">
               <div className="flex justify-between items-end">
-                <span className="text-xs font-black text-slate-400 uppercase">Cukiernia</span>
+                <span className="text-xs font-black text-slate-400 uppercase">Cukiernia (Ciasta, Drożdżówki)</span>
                 <span className="text-xl font-black text-slate-900">{stats.pastrySales.toLocaleString()} zł</span>
               </div>
               <div className="h-4 bg-slate-50 rounded-full overflow-hidden p-1">
-                <div className="h-full bg-pink-500 rounded-full transition-all duration-700" style={{ width: `${stats.totalSales > 0 ? (stats.pastrySales / stats.totalSales) * 100 : 0}%` }}></div>
+                <div className="h-full bg-pink-500 rounded-full transition-all duration-700 shadow-md" style={{ width: `${stats.totalSales > 0 ? (stats.pastrySales / stats.totalSales) * 100 : 0}%` }}></div>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Loss Structure */}
-        <div className="bg-white p-10 rounded-[3.5rem] border border-slate-200 shadow-sm">
+        {/* Loss Structure - NOWOŚĆ */}
+        <div className="bg-white p-10 rounded-[3.5rem] border border-slate-200 shadow-sm hover:border-rose-500/20 transition-all">
           <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest flex items-center gap-3 mb-12">
-            <TrendingDown size={20} className="text-rose-500" /> Struktura Strat
+            <TrendingDown size={20} className="text-rose-500" /> Struktura Strat (Waste Control)
           </h3>
           <div className="space-y-10">
             <div className="space-y-3">
               <div className="flex justify-between items-end">
                 <span className="text-xs font-black text-slate-400 uppercase">Straty Piekarnia</span>
-                <span className="text-xl font-black text-rose-600">{stats.bakeryLoss.toLocaleString()} zł</span>
+                <div className="text-right">
+                   <span className="text-xl font-black text-rose-600">{stats.bakeryLoss.toLocaleString()} zł</span>
+                   <p className="text-[9px] font-bold text-slate-400 uppercase">{stats.bakerySales > 0 ? ((stats.bakeryLoss / stats.bakerySales) * 100).toFixed(1) : 0}% obrotu sekcji</p>
+                </div>
               </div>
               <div className="h-4 bg-slate-50 rounded-full overflow-hidden p-1">
-                <div className="h-full bg-rose-500 rounded-full transition-all duration-700" style={{ width: `${stats.totalLoss > 0 ? (stats.bakeryLoss / stats.totalLoss) * 100 : 0}%` }}></div>
+                <div className="h-full bg-rose-500 rounded-full transition-all duration-700 shadow-md" style={{ width: `${stats.totalLoss > 0 ? (stats.bakeryLoss / stats.totalLoss) * 100 : 0}%` }}></div>
               </div>
             </div>
             <div className="space-y-3">
               <div className="flex justify-between items-end">
                 <span className="text-xs font-black text-slate-400 uppercase">Straty Cukiernia</span>
-                <span className="text-xl font-black text-rose-600">{stats.pastryLoss.toLocaleString()} zł</span>
+                <div className="text-right">
+                   <span className="text-xl font-black text-slate-900">{stats.pastryLoss.toLocaleString()} zł</span>
+                   <p className="text-[9px] font-bold text-slate-400 uppercase">{stats.pastrySales > 0 ? ((stats.pastryLoss / stats.pastrySales) * 100).toFixed(1) : 0}% obrotu sekcji</p>
+                </div>
               </div>
               <div className="h-4 bg-slate-50 rounded-full overflow-hidden p-1">
-                <div className="h-full bg-slate-900 rounded-full transition-all duration-700" style={{ width: `${stats.totalLoss > 0 ? (stats.pastryLoss / stats.totalLoss) * 100 : 0}%` }}></div>
+                <div className="h-full bg-slate-800 rounded-full transition-all duration-700 shadow-md" style={{ width: `${stats.totalLoss > 0 ? (stats.pastryLoss / stats.totalLoss) * 100 : 0}%` }}></div>
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Efficiency Ranking */}
-      <div className="bg-white p-10 rounded-[3.5rem] border border-slate-200 shadow-sm">
-        <div className="flex items-center justify-between mb-10">
+      {/* Ranking and Efficiency */}
+      <div className="bg-white p-10 rounded-[3.5rem] border border-slate-200 shadow-sm overflow-hidden relative">
+        <div className="flex items-center justify-between mb-12">
           <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest flex items-center gap-3">
-            <Award size={20} className="text-amber-500" /> Ranking Wydajności Punktów
+            <Award size={20} className="text-amber-500" /> Ranking Efektywności Punktów
           </h3>
+          <span className="bg-slate-900 text-white px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest">Bieżący Miesiąc</span>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-           {stats.ranking.map((l, i) => (
-             <div key={i} className="bg-slate-50 p-6 rounded-3xl border border-slate-100 flex flex-col justify-between">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+           {stats.ranking.slice(0, 8).map((l, i) => (
+             <div key={i} className="bg-slate-50 p-6 rounded-3xl border border-slate-100 flex flex-col justify-between group hover:bg-white hover:shadow-xl transition-all cursor-default">
                 <div>
-                  <div className="flex items-center justify-between mb-4">
-                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Miejsce #{i+1}</span>
-                    <span className="w-8 h-8 rounded-full bg-white flex items-center justify-center text-xs font-black shadow-sm">{i+1}</span>
+                  <div className="flex items-center justify-between mb-6">
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Poz. #{i+1}</span>
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-black shadow-sm ${i === 0 ? 'bg-amber-500 text-white' : 'bg-white text-slate-900'}`}>{i+1}</div>
                   </div>
-                  <h4 className="text-sm font-black text-slate-800 uppercase">{l.name}</h4>
+                  <h4 className="text-sm font-black text-slate-800 uppercase tracking-tight group-hover:text-amber-600 transition-colors">{l.name}</h4>
                 </div>
-                <div className="mt-8">
-                   <p className="text-2xl font-black text-slate-900">{l.efficiency.toFixed(1)}%</p>
-                   <p className="text-[8px] font-black text-emerald-500 uppercase tracking-[0.2em]">Efektywność</p>
+                <div className="mt-10">
+                   <div className="flex items-end justify-between mb-2">
+                     <p className="text-2xl font-black text-slate-900">{l.efficiency.toFixed(1)}%</p>
+                     <p className="text-[8px] font-black text-emerald-500 uppercase tracking-widest">Wydajność</p>
+                   </div>
+                   <div className="w-full h-1 bg-slate-200 rounded-full overflow-hidden">
+                      <div className="h-full bg-emerald-500" style={{ width: `${l.efficiency}%` }}></div>
+                   </div>
                 </div>
              </div>
            ))}
