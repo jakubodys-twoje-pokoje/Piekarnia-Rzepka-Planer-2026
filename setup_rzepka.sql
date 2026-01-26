@@ -1,26 +1,25 @@
 
--- ... (poprzednia treść skryptu)
+-- ... (poprzednia treść)
 
--- 6. Tabela celów (targets) - brakujący element
-CREATE TABLE IF NOT EXISTS public.targets (
+-- 7. Tabela komunikatów (rozszerzona)
+CREATE TABLE IF NOT EXISTS public.messages (
     id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
-    location_id uuid REFERENCES public.locations(id) ON DELETE CASCADE,
-    week_number integer NOT NULL CHECK (week_number BETWEEN 1 AND 53),
-    year integer NOT NULL,
-    bakery_daily_target numeric(10,2) DEFAULT 0,
-    bakery_loss_target numeric(10,2) DEFAULT 5,
-    bakery_loss_type text DEFAULT 'percent' CHECK (bakery_loss_type IN ('percent', 'amount')),
-    pastry_daily_target numeric(10,2) DEFAULT 0,
-    pastry_loss_target numeric(10,2) DEFAULT 5,
-    pastry_loss_type text DEFAULT 'percent' CHECK (pastry_loss_type IN ('percent', 'amount')),
+    sender_id uuid REFERENCES public.profiles(id) ON DELETE CASCADE,
+    recipient_location_id uuid REFERENCES public.locations(id) ON DELETE CASCADE,
+    to_admin boolean DEFAULT false,
+    content text NOT NULL,
+    is_read boolean DEFAULT false,
     created_at timestamp with time zone DEFAULT now(),
-    updated_at timestamp with time zone DEFAULT now(),
-    UNIQUE(location_id, week_number, year)
+    updated_at timestamp with time zone DEFAULT now()
 );
 
--- Uprawnienia RLS dla targets
-ALTER TABLE public.targets ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Admin full access targets" ON public.targets FOR ALL USING (
-  EXISTS (SELECT 1 FROM public.profiles WHERE profiles.id = auth.uid() AND profiles.role = 'admin')
+-- Uprawnienia RLS
+ALTER TABLE public.messages ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Everyone can read relevant messages" ON public.messages FOR SELECT USING (
+  auth.uid() = sender_id OR 
+  recipient_location_id IS NULL OR 
+  recipient_location_id IN (SELECT default_location_id FROM public.profiles WHERE id = auth.uid()) OR
+  (to_admin = true AND EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'))
 );
-CREATE POLICY "Everyone can read targets" ON public.targets FOR SELECT USING (true);
+CREATE POLICY "Everyone can insert messages" ON public.messages FOR INSERT WITH CHECK (auth.uid() = sender_id);
+CREATE POLICY "Recipients can update is_read" ON public.messages FOR UPDATE USING (true);

@@ -1,7 +1,9 @@
+
 import React, { useState, useEffect } from 'react';
 import { MENU_ITEMS, MenuItem } from '../constants';
 import { LogOut, ChevronDown, ChevronRight } from 'lucide-react';
 import { Role } from '../types';
+import { supabase } from '../supabase';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -12,8 +14,37 @@ interface SidebarProps {
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ isOpen, activeTab, onTabChange, userRole, onLogout }) => {
-  // Automatyczne rozwijanie grupy, która zawiera aktywny element
   const [expandedItems, setExpandedItems] = useState<string[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  const fetchUnreadCount = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { data: profile } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+
+    let query = supabase.from('messages').select('id', { count: 'exact' }).eq('is_read', false);
+
+    if (userRole === 'admin') {
+      query = query.eq('to_admin', true);
+    } else {
+      query = query.or(`recipient_location_id.is.null,recipient_location_id.eq.${profile?.default_location_id}`).eq('to_admin', false);
+    }
+
+    const { count } = await query;
+    setUnreadCount(count || 0);
+  };
+
+  useEffect(() => {
+    fetchUnreadCount();
+    const channel = supabase
+      .channel('sidebar-messages-sync')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, () => {
+        fetchUnreadCount();
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [userRole]);
 
   useEffect(() => {
     const parentGroup = MENU_ITEMS.find(item => 
@@ -31,15 +62,12 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, activeTab, onTabChange, userR
   };
 
   const filteredItems = MENU_ITEMS.filter(item => item.roles.includes(userRole));
-
-  const isSubItemActive = (item: MenuItem) => {
-    return item.subItems?.some(sub => sub.id === activeTab);
-  };
+  const isSubItemActive = (item: MenuItem) => item.subItems?.some(sub => sub.id === activeTab);
 
   return (
     <div className={`bg-white border-r border-slate-200 transition-all duration-300 flex flex-col ${isOpen ? 'w-64' : 'w-20'}`}>
       <div className="p-6 flex items-center gap-3 border-b border-slate-100 shrink-0">
-        <div className="w-10 h-10 bg-white rounded-xl p-1.5 flex items-center justify-center overflow-hidden shrink-0 shadow-lg shadow-amber-600/10 border border-amber-500/20">
+        <div className="w-10 h-10 bg-white rounded-xl p-1.5 flex items-center justify-center shrink-0 shadow-lg border border-amber-500/20">
           <img 
             src="https://stronyjakubowe.pl/wp-content/uploads/2026/01/89358602_111589903786829_6313621308307406848_n.jpg" 
             alt="Logo" 
@@ -54,12 +82,13 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, activeTab, onTabChange, userR
           const hasSubItems = item.subItems && item.subItems.length > 0;
           const isExpanded = expandedItems.includes(item.id);
           const isActive = activeTab === item.id || isSubItemActive(item);
+          const showBadge = item.id === 'messages' && unreadCount > 0;
 
           return (
             <div key={item.id} className="space-y-1">
               <button
                 onClick={() => hasSubItems ? toggleExpand(item.id) : onTabChange(item.id)}
-                className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all ${
+                className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all relative ${
                   isActive && !hasSubItems
                     ? 'bg-amber-600 text-white shadow-lg shadow-amber-600/20 font-bold' 
                     : isActive && hasSubItems
@@ -68,33 +97,26 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, activeTab, onTabChange, userR
                 }`}
               >
                 <div className="flex items-center gap-3">
-                  <span className={`${isActive ? (isActive && !hasSubItems ? 'text-white' : 'text-amber-500') : 'text-slate-400'}`}>
-                    {item.icon}
-                  </span>
+                  <span className={`${isActive ? (isActive && !hasSubItems ? 'text-white' : 'text-amber-500') : 'text-slate-400'}`}>{item.icon}</span>
                   {isOpen && <span className="text-[13px] tracking-tight">{item.label}</span>}
                 </div>
+                
+                {showBadge && (
+                  <div className={`absolute ${isOpen ? 'right-10' : 'right-2'} top-1/2 -translate-y-1/2 w-5 h-5 bg-rose-600 text-white text-[10px] font-black rounded-full flex items-center justify-center shadow-[0_0_15px_rgba(225,29,72,0.4)] border-2 border-white animate-pulse`}>
+                    {unreadCount}
+                  </div>
+                )}
+
                 {isOpen && hasSubItems && (
-                  <span className={`${isActive ? 'text-white/40' : 'text-slate-300'}`}>
-                    {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-                  </span>
+                  <span className={`${isActive ? 'text-white/40' : 'text-slate-300'}`}>{isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}</span>
                 )}
               </button>
 
               {isOpen && hasSubItems && isExpanded && (
                 <div className="ml-5 mt-1 space-y-1 border-l-2 border-slate-100 pl-4 animate-in slide-in-from-top-2 duration-300">
                   {item.subItems!.map(sub => (
-                    <button
-                      key={sub.id}
-                      onClick={() => onTabChange(sub.id)}
-                      className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-[12px] transition-all ${
-                        activeTab === sub.id
-                          ? 'text-amber-700 font-black bg-amber-50/50 translate-x-1'
-                          : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50 font-bold'
-                      }`}
-                    >
-                      <span className={activeTab === sub.id ? 'text-amber-500' : 'text-slate-300'}>
-                        {sub.icon}
-                      </span>
+                    <button key={sub.id} onClick={() => onTabChange(sub.id)} className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-[12px] transition-all ${activeTab === sub.id ? 'text-amber-700 font-black bg-amber-50/50 translate-x-1' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50 font-bold'}`}>
+                      <span className={activeTab === sub.id ? 'text-amber-500' : 'text-slate-300'}>{sub.icon}</span>
                       {sub.label}
                     </button>
                   ))}
@@ -106,10 +128,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, activeTab, onTabChange, userR
       </nav>
 
       <div className="p-4 border-t border-slate-100 shrink-0">
-        <button
-          onClick={onLogout}
-          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-rose-600 hover:bg-rose-50 transition-all font-bold text-[13px]"
-        >
+        <button onClick={onLogout} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-rose-600 hover:bg-rose-50 transition-all font-bold text-[13px]">
           <LogOut size={20} />
           {isOpen && <span className="tracking-tight uppercase text-[10px] font-black">Wyloguj system</span>}
         </button>

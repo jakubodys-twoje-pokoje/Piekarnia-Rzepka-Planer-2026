@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Menu, Bell, Search, User, ShieldCheck } from 'lucide-react';
+import { Menu, User, ShieldCheck } from 'lucide-react';
 import { UserProfile } from '../types';
 
 interface HeaderProps {
@@ -19,12 +19,11 @@ const Header: React.FC<HeaderProps> = ({ onToggleSidebar, user }) => {
       <div className="flex items-center gap-4">
         <button 
           onClick={onToggleSidebar}
-          className="p-2 text-slate-500 hover:bg-slate-50 rounded-lg transition-colors"
+          className="p-2 text-slate-500 hover:bg-slate-50 rounded-lg transition-colors lg:hidden"
         >
           <Menu size={20} />
         </button>
         
-        {/* Wskaźnik globalny - Widoczny TYLKO dla administratora */}
         {isAdmin && (
           <div className="hidden sm:flex items-center gap-2 text-amber-700 bg-amber-50 px-3 py-1.5 rounded-full border border-amber-100">
             <ShieldCheck size={14} />
@@ -34,19 +33,7 @@ const Header: React.FC<HeaderProps> = ({ onToggleSidebar, user }) => {
       </div>
 
       <div className="flex items-center gap-4">
-        <div className="hidden md:flex relative">
-          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-          <input 
-            type="text" 
-            placeholder="Szukaj w systemie..." 
-            className="pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500"
-          />
-        </div>
-        <button className="p-2 text-slate-500 hover:bg-slate-50 rounded-lg relative">
-          <Bell size={20} />
-          <span className="absolute top-2 right-2 w-2 h-2 bg-rose-500 border-2 border-white rounded-full"></span>
-        </button>
-        <div className="flex items-center gap-3 pl-4 border-l border-slate-200">
+        <div className="flex items-center gap-3 pl-4">
           <div className="text-right hidden sm:block">
             <p className="text-sm font-black text-slate-800 leading-none">{displayName}</p>
             <p className="text-[10px] text-slate-400 font-bold uppercase mt-1">
