@@ -13,6 +13,9 @@ import AdminMessages from './views/AdminMessages';
 import AdminBudgets from './views/AdminBudgets';
 import AdminReportsSimple from './views/AdminReportsSimple';
 import AdminReportsAdvanced from './views/AdminReportsAdvanced';
+import OrderEntry from './views/OrderEntry';
+import AdminOrders from './views/AdminOrders';
+import AdminInventory from './views/AdminInventory';
 import Login from './views/Login';
 import { supabase } from './supabase';
 import { Loader2, AlertTriangle } from 'lucide-react';
@@ -109,8 +112,10 @@ const App: React.FC = () => {
       case 'reports-data': return <AdminReports />;
       case 'budgets': return <AdminBudgets />;
       case 'analytics-simple': return <AdminReportsSimple />;
-      // Fix: Removed 'mode' prop as it is not defined on AdminReportsAdvanced
       case 'analytics-advanced': return <AdminReportsAdvanced />;
+      case 'order-entry': return <OrderEntry user={user} />;
+      case 'admin-orders': return <AdminOrders />;
+      case 'admin-inventory': return <AdminInventory />;
       default: return <Dashboard user={user} />;
     }
   };

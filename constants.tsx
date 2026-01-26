@@ -11,7 +11,10 @@ import {
   BarChart3,
   Target,
   PieChart,
-  Zap
+  Zap,
+  ShoppingBag,
+  Package,
+  Truck
 } from 'lucide-react';
 
 export interface MenuItem {
@@ -30,8 +33,27 @@ export const MONTHS = [
 export const MENU_ITEMS: MenuItem[] = [
   { id: 'dashboard', label: 'Panel główny', icon: <LayoutDashboard size={20} />, roles: ['admin', 'user', 'apprentice'] },
   { id: 'messages', label: 'Komunikaty', icon: <MessageSquare size={20} />, roles: ['admin', 'user', 'apprentice'] },
-  { id: 'entry', label: 'Nowy raport', icon: <PlusCircle size={20} />, roles: ['user', 'admin', 'apprentice'] },
-  { id: 'history', label: 'Historia wpisów', icon: <History size={20} />, roles: ['user', 'admin', 'apprentice'] },
+  { 
+    id: 'reporting', 
+    label: 'Raportowanie', 
+    icon: <PlusCircle size={20} />, 
+    roles: ['admin', 'user', 'apprentice'],
+    subItems: [
+      { id: 'entry', label: 'Nowy raport', icon: <PlusCircle size={16} />, roles: ['user', 'admin', 'apprentice'] },
+      { id: 'history', label: 'Historia wpisów', icon: <History size={16} />, roles: ['user', 'admin', 'apprentice'] },
+    ]
+  },
+  { 
+    id: 'orders', 
+    label: 'Zamówienia', 
+    icon: <ShoppingBag size={20} />, 
+    roles: ['admin', 'user', 'apprentice'],
+    subItems: [
+      { id: 'order-entry', label: 'Złóż zamówienie', icon: <Truck size={16} />, roles: ['admin', 'user', 'apprentice'] },
+      { id: 'admin-orders', label: 'Lista Produkcyjna', icon: <Package size={16} />, roles: ['admin'] },
+      { id: 'admin-inventory', label: 'Baza Towarów', icon: <ClipboardList size={16} />, roles: ['admin'] },
+    ]
+  },
   { 
     id: 'analytics', 
     label: 'Analizy', 
