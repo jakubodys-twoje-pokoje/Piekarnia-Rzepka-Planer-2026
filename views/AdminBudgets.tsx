@@ -1,8 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
-import { LOCATIONS, MONTHS } from '../constants';
+import { MONTHS } from '../constants';
 import { Save, Percent, Banknote, Target, TrendingDown, Loader2 } from 'lucide-react';
-import { LossTargetType } from '../types';
 import { supabase } from '../supabase';
 
 const AdminBudgets: React.FC = () => {
@@ -11,11 +10,15 @@ const AdminBudgets: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [budgets, setBudgets] = useState<any[]>([]);
+  const [locations, setLocations] = useState<any[]>([]);
 
-  const fetchBudgets = async () => {
+  const fetchData = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
+      const { data: locData } = await supabase.from('locations').select('*').order('name');
+      setLocations(locData || []);
+
+      const { data: targetData, error } = await supabase
         .from('targets')
         .select('*')
         .eq('month', selectedMonth + 1)
@@ -23,11 +26,10 @@ const AdminBudgets: React.FC = () => {
 
       if (error) throw error;
 
-      const merged = LOCATIONS.map(loc => {
-        const existing = data.find(d => d.location_id === loc.id);
+      const merged = (locData || []).map(loc => {
+        const existing = (targetData || []).find(d => d.location_id === loc.id);
         return existing || {
           location_id: loc.id,
-          locationName: loc.name,
           month: selectedMonth + 1,
           year: selectedYear,
           bakery_daily_target: 4500,
@@ -47,7 +49,7 @@ const AdminBudgets: React.FC = () => {
     }
   };
 
-  useEffect(() => { fetchBudgets(); }, [selectedMonth, selectedYear]);
+  useEffect(() => { fetchData(); }, [selectedMonth, selectedYear]);
 
   const handleSave = async () => {
     setSaving(true);
@@ -93,7 +95,7 @@ const AdminBudgets: React.FC = () => {
     <div className="space-y-8 pb-16">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
-          <h1 className="text-3xl font-black text-slate-900 tracking-tight">Budżetowanie</h1>
+          <h1 className="text-3xl font-black text-slate-900 tracking-tight uppercase">Budżetowanie</h1>
           <p className="text-base text-slate-500 font-medium">Zarządzanie celami na wybrany miesiąc.</p>
         </div>
         
@@ -108,7 +110,7 @@ const AdminBudgets: React.FC = () => {
           <button 
             onClick={handleSave}
             disabled={saving}
-            className="flex items-center gap-2 bg-slate-900 text-white px-6 py-3 rounded-xl font-black text-sm hover:bg-amber-600 transition-all shadow-xl disabled:opacity-50"
+            className="flex items-center gap-2 bg-slate-900 text-white px-6 py-3 rounded-xl font-black text-sm hover:bg-amber-600 transition-all shadow-xl disabled:opacity-50 uppercase tracking-widest"
           >
             {saving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
             ZAPISZ PLANY
@@ -131,7 +133,7 @@ const AdminBudgets: React.FC = () => {
                 <tr key={b.location_id} className="hover:bg-slate-50 transition-colors">
                   <td className="px-8 py-8">
                     <span className="text-lg font-black text-slate-800 tracking-tight">
-                      {LOCATIONS.find(l => l.id === b.location_id)?.name}
+                      {locations.find(l => l.id === b.location_id)?.name || 'Nieznany'}
                     </span>
                   </td>
                   

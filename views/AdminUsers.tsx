@@ -42,6 +42,7 @@ const AdminUsers: React.FC = () => {
     setErrorMsg('');
 
     try {
+      // Jeśli wybrano 'none', do bazy wędruje null. W przeciwnym razie UUID.
       const locationIdValue = modal.default_location_id === 'none' ? null : modal.default_location_id;
 
       if (modal.isNew) {
