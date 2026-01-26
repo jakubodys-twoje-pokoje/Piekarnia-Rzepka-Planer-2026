@@ -62,8 +62,8 @@ const DataEntry: React.FC<{ user: UserProfile }> = ({ user }) => {
       // Weryfikacja nadzorcy za pomocą tymczasowego klienta Supabase
       // Używamy tych samych danych URL i AnonKey co w głównym kliencie
       const tempClient = createClient(
-        'https://tymakcndlzhyfvmkhjkn.supabase.co', 
-        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR5bWFrY25kbHpoeWZ2bWtoamtuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg5NzI5MjcsImV4cCI6MjA4NDU0ODkyN30.e2oOyJX2fK9cOcDBkszbmrVE7Mg-PRVZPYYHKopCZmY'
+        import.meta.env.VITE_SUPABASE_URL || '',
+        import.meta.env.VITE_SUPABASE_ANON_KEY || ''
       );
       
       const { data: authData, error: authError } = await tempClient.auth.signInWithPassword({
