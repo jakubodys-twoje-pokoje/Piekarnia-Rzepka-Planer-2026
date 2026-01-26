@@ -122,17 +122,21 @@ const App: React.FC = () => {
 
   return (
     <div className="flex h-screen bg-slate-50 overflow-hidden">
-      <Sidebar 
-        isOpen={true} 
-        activeTab={activeTab} 
-        onTabChange={setActiveTab} 
-        userRole={user.role} 
-        onLogout={() => supabase.auth.signOut()}
-      />
-      <div className="flex-1 flex flex-col min-w-0">
-        <Header onToggleSidebar={() => {}} user={user} />
-        <main className="flex-1 overflow-y-auto p-4 md:p-8 custom-scrollbar">
-          <div className="max-w-7xl mx-auto">{renderContent()}</div>
+      <div className="no-print h-full">
+        <Sidebar 
+          isOpen={true} 
+          activeTab={activeTab} 
+          onTabChange={setActiveTab} 
+          userRole={user.role} 
+          onLogout={() => supabase.auth.signOut()}
+        />
+      </div>
+      <div className="flex-1 flex flex-col min-w-0 h-full">
+        <div className="no-print shrink-0">
+          <Header onToggleSidebar={() => {}} user={user} />
+        </div>
+        <main className="flex-1 overflow-y-auto p-4 md:p-8 custom-scrollbar print:p-0 print:overflow-visible">
+          <div className="max-w-7xl mx-auto print:max-w-none print:m-0">{renderContent()}</div>
         </main>
       </div>
     </div>

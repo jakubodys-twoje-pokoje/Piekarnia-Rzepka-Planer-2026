@@ -50,7 +50,12 @@ const AdminUsers: React.FC = () => {
           password: modal.password,
         });
 
-        if (authError) throw authError;
+        if (authError) {
+          if (authError.message.includes("Email rate limit exceeded")) {
+             throw new Error("Limit wysyłek e-mail przekroczony. Supabase pozwala na max 3 nowych użytkowników na godzinę. Spróbuj później.");
+          }
+          throw authError;
+        }
 
         if (authData.user) {
           const { error: profileError } = await supabase
@@ -103,27 +108,11 @@ const AdminUsers: React.FC = () => {
     }
   };
 
-  const getRoleBadge = (role: string) => {
-    switch (role) {
-      case 'admin': return <Shield size={10} className="text-amber-500" />;
-      case 'apprentice': return <GraduationCap size={10} className="text-indigo-500" />;
-      default: return <UserIcon size={10} className="text-slate-300" />;
-    }
-  };
-
-  const getRoleLabel = (role: string) => {
-    switch (role) {
-      case 'admin': return 'Administrator';
-      case 'apprentice': return 'Uczeń';
-      default: return 'Pracownik';
-    }
-  };
-
   if (loading && users.length === 0) return <div className="flex justify-center p-20"><Loader2 className="animate-spin text-amber-500" size={40} /></div>;
 
   return (
     <div className="space-y-8 pb-20">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 no-print">
         <div>
           <h1 className="text-3xl font-black text-slate-900 tracking-tight uppercase">Zespół Rzepka</h1>
           <p className="text-slate-500 font-medium">Zarządzaj dostępem pracowników i uczniów.</p>
@@ -132,7 +121,7 @@ const AdminUsers: React.FC = () => {
           onClick={() => setModal({ isNew: true, email: '', password: '', first_name: '', last_name: '', role: 'user', default_location_id: 'none' })}
           className="flex items-center gap-2 bg-slate-900 text-white px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-amber-600 transition-all shadow-xl"
         >
-          <UserPlus size={18} /> Dodaj Członka Zespołu
+          <UserPlus size={18} /> Dodaj Członka
         </button>
       </div>
 
@@ -143,7 +132,7 @@ const AdminUsers: React.FC = () => {
               <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${u.role === 'admin' ? 'bg-amber-100 text-amber-700' : (u.role === 'apprentice' ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100 text-slate-400')}`}>
                 {u.role === 'admin' ? <Shield size={28} /> : (u.role === 'apprentice' ? <GraduationCap size={28} /> : <UserIcon size={28} />)}
               </div>
-              <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+              <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity no-print">
                 <button onClick={() => setModal({ ...u, isNew: false, default_location_id: u.default_location_id || 'none' })} className="p-2.5 bg-slate-50 text-slate-400 hover:text-amber-600 rounded-xl transition-all"><Edit2 size={16} /></button>
                 <button onClick={() => handleDelete(u.id)} className="p-2.5 bg-slate-50 text-slate-400 hover:text-rose-600 rounded-xl transition-all"><Trash2 size={16} /></button>
               </div>
@@ -154,10 +143,6 @@ const AdminUsers: React.FC = () => {
                 {u.first_name && u.last_name ? `${u.first_name} ${u.last_name}` : u.email?.split('@')[0]}
               </h3>
               <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2"><Mail size={10} /> {u.email}</p>
-              <div className="flex items-center gap-2 mt-2">
-                {getRoleBadge(u.role)}
-                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{getRoleLabel(u.role)}</span>
-              </div>
             </div>
 
             <div className="pt-4 border-t border-slate-50">
@@ -187,24 +172,24 @@ const AdminUsers: React.FC = () => {
 
               <div className="space-y-5">
                 <div className="grid grid-cols-2 gap-4">
-                  <input type="text" required value={modal.first_name || ''} onChange={e => setModal({...modal, first_name: e.target.value})} className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl font-bold outline-none" placeholder="Imię" />
-                  <input type="text" required value={modal.last_name || ''} onChange={e => setModal({...modal, last_name: e.target.value})} className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl font-bold outline-none" placeholder="Nazwisko" />
+                  <input type="text" required value={modal.first_name || ''} onChange={e => setModal({...modal, first_name: e.target.value})} className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl font-bold outline-none focus:bg-white" placeholder="Imię" />
+                  <input type="text" required value={modal.last_name || ''} onChange={e => setModal({...modal, last_name: e.target.value})} className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl font-bold outline-none focus:bg-white" placeholder="Nazwisko" />
                 </div>
 
                 {modal.isNew && (
                   <>
-                    <input type="email" required value={modal.email} onChange={e => setModal({...modal, email: e.target.value})} className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl font-bold outline-none" placeholder="Email" />
-                    <input type="password" required value={modal.password} onChange={e => setModal({...modal, password: e.target.value})} className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl font-bold outline-none" placeholder="Hasło" />
+                    <input type="email" required value={modal.email} onChange={e => setModal({...modal, email: e.target.value})} className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl font-bold outline-none focus:bg-white" placeholder="Email" />
+                    <input type="password" required value={modal.password} onChange={e => setModal({...modal, password: e.target.value})} className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl font-bold outline-none focus:bg-white" placeholder="Hasło (min. 6 znaków)" />
                   </>
                 )}
 
                 <div className="grid grid-cols-2 gap-4">
-                  <select value={modal.role} onChange={e => setModal({...modal, role: e.target.value})} className="w-full px-4 py-4 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs uppercase outline-none">
+                  <select value={modal.role} onChange={e => setModal({...modal, role: e.target.value})} className="w-full px-4 py-4 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs uppercase outline-none focus:bg-white">
                     <option value="user">Pracownik</option>
                     <option value="apprentice">Uczeń</option>
                     <option value="admin">Administrator</option>
                   </select>
-                  <select value={modal.default_location_id} onChange={e => setModal({...modal, default_location_id: e.target.value})} className="w-full px-4 py-4 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs uppercase outline-none">
+                  <select value={modal.default_location_id} onChange={e => setModal({...modal, default_location_id: e.target.value})} className="w-full px-4 py-4 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs uppercase outline-none focus:bg-white">
                     <option value="none">Bez punktu</option>
                     {locations.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
                   </select>
