@@ -21,20 +21,46 @@
       .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.08); border-radius: 10px; }
       .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.15); }
       
-      /* HEAVY SCROLLBAR FOR ADMIN TABLES */
       .custom-scrollbar-heavy::-webkit-scrollbar { height: 12px; width: 12px; }
       .custom-scrollbar-heavy::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 10px; }
       .custom-scrollbar-heavy::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; border: 3px solid #f1f5f9; }
       .custom-scrollbar-heavy::-webkit-scrollbar-thumb:hover { background: #f59e0b; }
 
-      @keyframes pulse-soft {
-        0%, 100% { transform: scale(1); opacity: 1; }
-        50% { transform: scale(1.08); opacity: 0.8; }
-      }
-      .pulse-amber { animation: pulse-soft 2s infinite ease-in-out; }
-
       @media print {
-        .custom-scrollbar, .custom-scrollbar-heavy { overflow: visible !important; }
+        .no-print { display: none !important; }
+        body, html, #root { 
+          background: white !important; 
+          width: 100% !important; 
+          height: auto !important;
+          margin: 0 !important;
+          padding: 0 !important;
+          overflow: visible !important;
+        }
+        main { 
+          padding: 0 !important; 
+          margin: 0 !important; 
+          display: block !important;
+          width: 100% !important;
+        }
+        .max-w-7xl, .max-w-\[1600px\] { 
+          max-width: none !important; 
+          width: 100% !important;
+        }
+        .custom-scrollbar, .custom-scrollbar-heavy { 
+          overflow: visible !important; 
+        }
+        /* Rotacja nagłówków lokalizacji dla zaoszczędzenia miejsca */
+        .print-vertical-th {
+          writing-mode: vertical-rl !important;
+          transform: rotate(180deg) !important;
+          white-space: nowrap !important;
+          height: 120px !important;
+          padding: 5px 2px !important;
+          vertical-align: middle !important;
+          text-align: left !important;
+          min-width: 25px !important;
+          font-size: 7pt !important;
+        }
       }
     </style>
   <script type="importmap">
