@@ -18,21 +18,30 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, activeTab, onTabChange, userR
   const [unreadCount, setUnreadCount] = useState(0);
 
   const fetchUnreadCount = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
 
-    const { data: profile } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+      const { data: profile } = await supabase.from('profiles').select('default_location_id').eq('id', user.id).maybeSingle();
 
-    let query = supabase.from('messages').select('id', { count: 'exact' }).eq('is_read', false);
+      let query = supabase.from('messages').select('id', { count: 'exact' }).eq('is_read', false);
 
-    if (userRole === 'admin') {
-      query = query.eq('to_admin', true);
-    } else {
-      query = query.or(`recipient_location_id.is.null,recipient_location_id.eq.${profile?.default_location_id}`).eq('to_admin', false);
+      if (userRole === 'admin') {
+        query = query.eq('to_admin', true);
+      } else {
+        const locId = profile?.default_location_id;
+        if (locId) {
+          query = query.or(`recipient_location_id.is.null,recipient_location_id.eq.${locId}`).eq('to_admin', false);
+        } else {
+          query = query.is('recipient_location_id', null).eq('to_admin', false);
+        }
+      }
+
+      const { count } = await query;
+      setUnreadCount(count || 0);
+    } catch (e) {
+      console.warn("Sidebar count fetch failed", e);
     }
-
-    const { count } = await query;
-    setUnreadCount(count || 0);
   };
 
   useEffect(() => {
