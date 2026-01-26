@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../supabase';
 import { 
-  Shield, User as UserIcon, Loader2, Save, MapPin, 
+  Shield, User as UserIcon, Loader2, Save, MapPin, GraduationCap,
   UserPlus, X, Key, Mail, AlertCircle, Trash2, Edit2, CheckCircle2 
 } from 'lucide-react';
 
@@ -45,20 +45,14 @@ const AdminUsers: React.FC = () => {
       const locationIdValue = modal.default_location_id === 'none' ? null : modal.default_location_id;
 
       if (modal.isNew) {
-        // 1. Tworzymy konto w Auth
         const { data: authData, error: authError } = await supabase.auth.signUp({
           email: modal.email,
           password: modal.password,
-          options: {
-            // Zapobiega automatycznemu logowaniu nowego użytkownika (zależne od konfiguracji Supabase)
-            emailRedirectTo: window.location.origin 
-          }
         });
 
         if (authError) throw authError;
 
         if (authData.user) {
-          // 2. Używamy UPSERT zamiast UPDATE, aby mieć pewność, że rekord w profiles powstanie
           const { error: profileError } = await supabase
             .from('profiles')
             .upsert({
@@ -71,11 +65,8 @@ const AdminUsers: React.FC = () => {
             }, { onConflict: 'id' });
 
           if (profileError) throw profileError;
-        } else {
-          throw new Error("Użytkownik stworzony, ale nie zwrócono ID. Sprawdź czy email nie jest już w użyciu.");
         }
       } else {
-        // Edycja istniejącego
         const { error: updateError } = await supabase
           .from('profiles')
           .update({
@@ -96,42 +87,52 @@ const AdminUsers: React.FC = () => {
         fetchData();
       }, 1500);
     } catch (err: any) {
-      console.error("User Creation Error:", err);
+      console.error(err);
       setStatus('error');
-      setErrorMsg(err.message || "Wystąpił nieoczekiwany błąd podczas tworzenia użytkownika.");
+      setErrorMsg(err.message);
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Usunąć profil z bazy? Pamiętaj, że konto w Auth musi zostać usunięte ręcznie w panelu administracyjnym Supabase.')) return;
+    if (!confirm('Usunąć profil?')) return;
     try {
-      const { error } = await supabase.from('profiles').delete().eq('id', id);
-      if (error) throw error;
+      await supabase.from('profiles').delete().eq('id', id);
       fetchData();
     } catch (err: any) {
       alert("Błąd: " + err.message);
     }
   };
 
-  if (loading && users.length === 0) return (
-    <div className="flex flex-col items-center justify-center p-20 gap-4">
-      <Loader2 className="animate-spin text-amber-500" size={40} />
-      <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Wczytywanie zespołu...</p>
-    </div>
-  );
+  const getRoleBadge = (role: string) => {
+    switch (role) {
+      case 'admin': return <Shield size={10} className="text-amber-500" />;
+      case 'apprentice': return <GraduationCap size={10} className="text-indigo-500" />;
+      default: return <UserIcon size={10} className="text-slate-300" />;
+    }
+  };
+
+  const getRoleLabel = (role: string) => {
+    switch (role) {
+      case 'admin': return 'Administrator';
+      case 'apprentice': return 'Uczeń';
+      default: return 'Pracownik';
+    }
+  };
+
+  if (loading && users.length === 0) return <div className="flex justify-center p-20"><Loader2 className="animate-spin text-amber-500" size={40} /></div>;
 
   return (
     <div className="space-y-8 pb-20">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
           <h1 className="text-3xl font-black text-slate-900 tracking-tight uppercase">Zespół Rzepka</h1>
-          <p className="text-slate-500 font-medium">Zarządzaj dostępem pracowników do systemu.</p>
+          <p className="text-slate-500 font-medium">Zarządzaj dostępem pracowników i uczniów.</p>
         </div>
         <button 
           onClick={() => setModal({ isNew: true, email: '', password: '', first_name: '', last_name: '', role: 'user', default_location_id: 'none' })}
-          className="flex items-center gap-2 bg-slate-900 text-white px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-amber-600 transition-all shadow-xl active:scale-95"
+          className="flex items-center gap-2 bg-slate-900 text-white px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-amber-600 transition-all shadow-xl"
         >
-          <UserPlus size={18} /> Dodaj Pracownika
+          <UserPlus size={18} /> Dodaj Członka Zespołu
         </button>
       </div>
 
@@ -139,35 +140,23 @@ const AdminUsers: React.FC = () => {
         {users.map((u) => (
           <div key={u.id} className="bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-sm hover:shadow-md transition-all group">
             <div className="flex justify-between items-start mb-6">
-              <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${u.role === 'admin' ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-400'}`}>
-                {u.role === 'admin' ? <Shield size={28} /> : <UserIcon size={28} />}
+              <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${u.role === 'admin' ? 'bg-amber-100 text-amber-700' : (u.role === 'apprentice' ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100 text-slate-400')}`}>
+                {u.role === 'admin' ? <Shield size={28} /> : (u.role === 'apprentice' ? <GraduationCap size={28} /> : <UserIcon size={28} />)}
               </div>
               <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                <button 
-                  onClick={() => setModal({ ...u, isNew: false, default_location_id: u.default_location_id || 'none' })}
-                  className="p-2.5 bg-slate-50 text-slate-400 hover:text-amber-600 rounded-xl transition-all"
-                >
-                  <Edit2 size={16} />
-                </button>
-                <button 
-                  onClick={() => handleDelete(u.id)}
-                  className="p-2.5 bg-slate-50 text-slate-400 hover:text-rose-600 rounded-xl transition-all"
-                >
-                  <Trash2 size={16} />
-                </button>
+                <button onClick={() => setModal({ ...u, isNew: false, default_location_id: u.default_location_id || 'none' })} className="p-2.5 bg-slate-50 text-slate-400 hover:text-amber-600 rounded-xl transition-all"><Edit2 size={16} /></button>
+                <button onClick={() => handleDelete(u.id)} className="p-2.5 bg-slate-50 text-slate-400 hover:text-rose-600 rounded-xl transition-all"><Trash2 size={16} /></button>
               </div>
             </div>
             
             <div className="space-y-1 mb-6">
               <h3 className="text-lg font-black text-slate-800 break-all leading-tight">
-                {u.first_name && u.last_name ? `${u.first_name} ${u.last_name}` : u.email?.split('@')[0] || 'Nowy Użytkownik'}
+                {u.first_name && u.last_name ? `${u.first_name} ${u.last_name}` : u.email?.split('@')[0]}
               </h3>
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                <Mail size={10} /> {u.email || 'Brak adresu'}
-              </p>
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2"><Mail size={10} /> {u.email}</p>
               <div className="flex items-center gap-2 mt-2">
-                <Shield size={10} className={u.role === 'admin' ? 'text-amber-500' : 'text-slate-300'} />
-                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{u.role === 'admin' ? 'Administrator' : 'Pracownik'}</span>
+                {getRoleBadge(u.role)}
+                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{getRoleLabel(u.role)}</span>
               </div>
             </div>
 
@@ -188,73 +177,44 @@ const AdminUsers: React.FC = () => {
             <form onSubmit={handleSubmit} className="p-10 space-y-8">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Dane pracownika</h3>
-                  <p className="text-2xl font-black text-slate-900 uppercase tracking-tight">
-                    {modal.isNew ? 'Nowy Użytkownik' : 'Edycja Profilu'}
-                  </p>
+                  <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Zarządzanie kontem</h3>
+                  <p className="text-2xl font-black text-slate-900 uppercase tracking-tight">{modal.isNew ? 'Nowy Członek' : 'Edycja Danych'}</p>
                 </div>
-                <button type="button" onClick={() => setModal(null)} className="p-3 bg-slate-50 text-slate-400 hover:text-slate-900 rounded-full transition-all"><X size={24} /></button>
+                <button type="button" onClick={() => setModal(null)} className="p-3 bg-slate-50 text-slate-400 rounded-full hover:text-slate-900"><X size={24} /></button>
               </div>
 
-              {status === 'error' && (
-                <div className="p-4 bg-rose-50 border border-rose-100 rounded-2xl flex items-center gap-3 text-rose-600 text-xs font-bold">
-                  <AlertCircle size={18} /> {errorMsg}
-                </div>
-              )}
+              {status === 'error' && <div className="p-4 bg-rose-50 text-rose-600 text-xs font-bold rounded-2xl flex items-center gap-2"><AlertCircle size={16}/> {errorMsg}</div>}
 
               <div className="space-y-5">
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Imię</label>
-                    <input type="text" required value={modal.first_name || ''} onChange={e => setModal({...modal, first_name: e.target.value})} className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl font-bold outline-none" placeholder="Jan" />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Nazwisko</label>
-                    <input type="text" required value={modal.last_name || ''} onChange={e => setModal({...modal, last_name: e.target.value})} className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl font-bold outline-none" placeholder="Kowalski" />
-                  </div>
+                  <input type="text" required value={modal.first_name || ''} onChange={e => setModal({...modal, first_name: e.target.value})} className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl font-bold outline-none" placeholder="Imię" />
+                  <input type="text" required value={modal.last_name || ''} onChange={e => setModal({...modal, last_name: e.target.value})} className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl font-bold outline-none" placeholder="Nazwisko" />
                 </div>
 
                 {modal.isNew && (
                   <>
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-2"><Mail size={12} /> Email</label>
-                      <input type="email" required value={modal.email} onChange={e => setModal({...modal, email: e.target.value})} className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl font-bold outline-none" placeholder="nazwisko@rzepka.pl" />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-2"><Key size={12} /> Hasło</label>
-                      <input type="password" required value={modal.password} onChange={e => setModal({...modal, password: e.target.value})} className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl font-bold outline-none" placeholder="••••••••" />
-                    </div>
+                    <input type="email" required value={modal.email} onChange={e => setModal({...modal, email: e.target.value})} className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl font-bold outline-none" placeholder="Email" />
+                    <input type="password" required value={modal.password} onChange={e => setModal({...modal, password: e.target.value})} className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl font-bold outline-none" placeholder="Hasło" />
                   </>
                 )}
 
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Rola</label>
-                    <select value={modal.role} onChange={e => setModal({...modal, role: e.target.value})} className="w-full px-4 py-4 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs uppercase outline-none">
-                      <option value="user">Pracownik</option>
-                      <option value="admin">Administrator</option>
-                    </select>
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Punkt</label>
-                    <select value={modal.default_location_id} onChange={e => setModal({...modal, default_location_id: e.target.value})} className="w-full px-4 py-4 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs uppercase outline-none">
-                      <option value="none">Brak przypisania</option>
-                      {locations.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
-                    </select>
-                  </div>
+                  <select value={modal.role} onChange={e => setModal({...modal, role: e.target.value})} className="w-full px-4 py-4 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs uppercase outline-none">
+                    <option value="user">Pracownik</option>
+                    <option value="apprentice">Uczeń</option>
+                    <option value="admin">Administrator</option>
+                  </select>
+                  <select value={modal.default_location_id} onChange={e => setModal({...modal, default_location_id: e.target.value})} className="w-full px-4 py-4 bg-slate-50 border border-slate-100 rounded-2xl font-black text-xs uppercase outline-none">
+                    <option value="none">Bez punktu</option>
+                    {locations.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
+                  </select>
                 </div>
               </div>
 
-              <button type="submit" disabled={status === 'processing'} className="w-full py-5 bg-slate-900 text-white rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-xl flex items-center justify-center gap-3 disabled:opacity-50">
+              <button type="submit" disabled={status === 'processing'} className="w-full py-5 bg-slate-900 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl flex items-center justify-center gap-3 active:scale-95 disabled:opacity-50">
                 {status === 'processing' ? <Loader2 size={18} className="animate-spin" /> : (status === 'success' ? <CheckCircle2 className="text-emerald-400" /> : <Save size={18} />)}
-                {status === 'processing' ? 'PRZETWARZANIE...' : 'ZAPISZ PRACOWNIKA'}
+                ZAPISZ ZMIANY
               </button>
-              
-              {modal.isNew && (
-                <p className="text-[9px] text-center text-slate-400 font-bold leading-relaxed px-4">
-                  UWAGA: Po stworzeniu użytkownika, system Supabase może wymagać potwierdzenia adresu email, jeśli opcja "Confirm Email" jest włączona w ustawieniach Auth.
-                </p>
-              )}
             </form>
           </div>
         </div>

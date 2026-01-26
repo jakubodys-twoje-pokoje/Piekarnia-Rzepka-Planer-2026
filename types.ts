@@ -1,7 +1,6 @@
 
-export type Role = 'admin' | 'user';
+export type Role = 'admin' | 'user' | 'apprentice';
 
-// Adding missing type for loss targets used in budgeting
 export type LossTargetType = 'percent' | 'amount';
 
 export interface UserProfile {

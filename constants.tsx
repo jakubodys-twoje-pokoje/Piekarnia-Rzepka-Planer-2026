@@ -23,14 +23,13 @@ export const MONTHS = [
   'Lipiec', 'Sierpień', 'Wrzesień', 'Październik', 'Listopad', 'Grudzień'
 ];
 
-// Fallback dla lokalizacji - TYLKO STRUKTURA, ID są pobierane z DB
 export const LOCATIONS: any[] = [];
 
 export const MENU_ITEMS: MenuItem[] = [
-  { id: 'dashboard', label: 'Panel główny', icon: <LayoutDashboard size={20} />, roles: ['admin', 'user'] },
-  { id: 'messages', label: 'Komunikaty', icon: <MessageSquare size={20} />, roles: ['admin', 'user'] },
-  { id: 'entry', label: 'Nowy raport', icon: <PlusCircle size={20} />, roles: ['user', 'admin'] },
-  { id: 'history', label: 'Historia wpisów', icon: <History size={20} />, roles: ['user', 'admin'] },
+  { id: 'dashboard', label: 'Panel główny', icon: <LayoutDashboard size={20} />, roles: ['admin', 'user', 'apprentice'] },
+  { id: 'messages', label: 'Komunikaty', icon: <MessageSquare size={20} />, roles: ['admin', 'user', 'apprentice'] },
+  { id: 'entry', label: 'Nowy raport', icon: <PlusCircle size={20} />, roles: ['user', 'admin', 'apprentice'] },
+  { id: 'history', label: 'Historia wpisów', icon: <History size={20} />, roles: ['user', 'admin', 'apprentice'] },
   { id: 'reports-data', label: 'Dziennik raportów', icon: <ClipboardList size={20} />, roles: ['admin'] },
   { id: 'locations', label: 'Punkty sprzedaży', icon: <MapPin size={20} />, roles: ['admin'] },
   { id: 'users', label: 'Zespół', icon: <UsersIcon size={20} />, roles: ['admin'] },
