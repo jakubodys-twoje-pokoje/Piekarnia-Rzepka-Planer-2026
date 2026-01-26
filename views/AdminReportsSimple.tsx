@@ -1,23 +1,34 @@
 
-import React, { useState } from 'react';
-import { TrendingUp, TrendingDown, DollarSign, PieChart, Calendar, Globe, MapPin, ChevronRight } from 'lucide-react';
-import { LOCATIONS, MONTHS } from '../constants';
+import React, { useState, useEffect } from 'react';
+import { TrendingUp, TrendingDown, DollarSign, PieChart, Calendar, Globe, MapPin, ChevronRight, Loader2 } from 'lucide-react';
+import { supabase } from '../supabase';
 
 const AdminReportsSimple: React.FC = () => {
   const [viewScope, setViewScope] = useState<'global' | string>('global');
+  const [locations, setLocations] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const selectedLocationName = viewScope === 'global' ? 'Cała Sieć' : LOCATIONS.find(l => l.id === viewScope)?.name;
+  useEffect(() => {
+    const fetchLocs = async () => {
+      const { data } = await supabase.from('locations').select('*').order('name');
+      setLocations(data || []);
+      setLoading(false);
+    };
+    fetchLocs();
+  }, []);
 
-  // Mock annual data
+  const selectedLocationName = viewScope === 'global' ? 'Cała Sieć' : locations.find(l => l.id === viewScope)?.name;
+
   const annualProgress = [
     { m: 'St', p: 102 }, { m: 'Lu', p: 98 }, { m: 'Ma', p: 105 }, { m: 'Kw', p: 110 },
     { m: 'Ma', p: 92 }, { m: 'Cz', p: 101 }, { m: 'Li', p: 108 }, { m: 'Si', p: 115 },
     { m: 'Wr', p: 95 }, { m: 'Pa', p: 88 }, { m: 'Li', p: 104 }, { m: 'Gr', p: 120 }
   ];
 
+  if (loading) return <div className="flex justify-center p-20"><Loader2 className="animate-spin text-amber-500" size={40} /></div>;
+
   return (
     <div className="space-y-8 pb-12">
-      {/* Global Filter Bar */}
       <div className="bg-white p-4 rounded-[2rem] border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
           <div className={`p-3 rounded-2xl ${viewScope === 'global' ? 'bg-slate-900 text-white' : 'bg-amber-100 text-amber-700'}`}>
@@ -37,7 +48,7 @@ const AdminReportsSimple: React.FC = () => {
           >
             <option value="global">🌍 WIDOK CAŁEJ SIECI</option>
             <optgroup label="PUNKTY SPRZEDAŻY">
-              {LOCATIONS.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
+              {locations.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
             </optgroup>
           </select>
           <div className="h-10 w-[2px] bg-slate-100 mx-2 hidden md:block"></div>
@@ -47,7 +58,6 @@ const AdminReportsSimple: React.FC = () => {
         </div>
       </div>
 
-      {/* Main KPIs */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-sm relative overflow-hidden group">
           <div className="absolute -right-4 -top-4 w-24 h-24 bg-emerald-50 rounded-full group-hover:scale-150 transition-transform duration-700"></div>
@@ -99,7 +109,6 @@ const AdminReportsSimple: React.FC = () => {
         </div>
       </div>
 
-      {/* Middle Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-slate-900 p-10 rounded-[3rem] shadow-2xl text-white relative overflow-hidden group">
           <div className="absolute top-0 right-0 w-80 h-80 bg-amber-500/10 rounded-full -mr-20 -mt-20 blur-3xl group-hover:bg-amber-500/20 transition-all duration-1000"></div>
@@ -111,7 +120,7 @@ const AdminReportsSimple: React.FC = () => {
             </div>
             
             <div className="mt-12 space-y-4">
-              {LOCATIONS.slice(0, 3).map((l, i) => (
+              {locations.slice(0, 3).map((l, i) => (
                 <div key={l.id} className="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/5 hover:bg-white/10 transition-all cursor-pointer">
                   <div className="flex items-center gap-4">
                     <span className="text-lg font-black text-amber-500">#{i+1}</span>

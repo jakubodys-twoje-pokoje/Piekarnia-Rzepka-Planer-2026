@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   TrendingUp, Download, Calendar, Layers, ChevronDown, ChevronUp, MapPin, Loader2, Zap
 } from 'lucide-react';
-import { LOCATIONS } from '../constants';
+// Correct: removed non-existent LOCATIONS import from '../constants'
 import { supabase } from '../supabase';
 
 interface AdminReportsAdvancedProps {
@@ -15,9 +15,12 @@ const AdminReportsAdvanced: React.FC<AdminReportsAdvancedProps> = ({ mode }) => 
   const [data, setData] = useState<any[]>([]);
   const [expandedDay, setExpandedDay] = useState<string | null>(null);
   const [viewScope, setViewScope] = useState<'global' | string>('global');
+  // Added locations state to store data from database
+  const [locations, setLocations] = useState<any[]>([]);
 
   const isMonthly = mode === 'monthly';
-  const selectedLocationName = viewScope === 'global' ? 'Cała sieć' : LOCATIONS.find(l => l.id === viewScope)?.name;
+  // Correct: use the locations state instead of a constant
+  const selectedLocationName = viewScope === 'global' ? 'Cała sieć' : locations.find(l => l.id === viewScope)?.name;
 
   useEffect(() => {
     const fetchData = async () => {
@@ -25,6 +28,10 @@ const AdminReportsAdvanced: React.FC<AdminReportsAdvancedProps> = ({ mode }) => 
       const now = new Date();
       
       try {
+        // Fetch locations to populate names and dropdown
+        const { data: locData } = await supabase.from('locations').select('*').order('name');
+        setLocations(locData || []);
+
         let query = supabase.from('daily_reports').select('*');
         
         if (isMonthly) {
@@ -88,7 +95,7 @@ const AdminReportsAdvanced: React.FC<AdminReportsAdvancedProps> = ({ mode }) => 
     };
 
     fetchData();
-  }, [mode, viewScope]);
+  }, [mode, viewScope, isMonthly]);
 
   const maxVal = Math.max(...data.map(d => d.sales), 1);
 
@@ -123,7 +130,7 @@ const AdminReportsAdvanced: React.FC<AdminReportsAdvancedProps> = ({ mode }) => 
             className="px-6 py-3 bg-white border border-slate-200 rounded-2xl font-black text-[10px] text-slate-700 uppercase tracking-widest outline-none shadow-sm"
           >
             <option value="global">🌍 CAŁA SIEĆ</option>
-            {LOCATIONS.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
+            {locations.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
           </select>
           <button className="flex items-center gap-2 bg-slate-900 text-white px-6 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-amber-600 transition-all shadow-xl">
              <Download size={16} /> EKSPORT
@@ -205,7 +212,7 @@ const AdminReportsAdvanced: React.FC<AdminReportsAdvancedProps> = ({ mode }) => 
                                 <tbody className="divide-y divide-slate-50">
                                   {day.reports.map((r: any) => (
                                     <tr key={r.id}>
-                                      <td className="px-6 py-3 font-black text-slate-700">{LOCATIONS.find(l => l.id === r.location_id)?.name}</td>
+                                      <td className="px-6 py-3 font-black text-slate-700">{locations.find(l => l.id === r.location_id)?.name}</td>
                                       <td className="px-6 py-3 text-right text-slate-600">{r.bakery_sales.toLocaleString()} zł</td>
                                       <td className="px-6 py-3 text-right text-slate-600">{r.pastry_sales.toLocaleString()} zł</td>
                                       <td className="px-6 py-3 text-right font-black text-slate-900">{(r.bakery_sales + r.pastry_sales).toLocaleString()} zł</td>

@@ -10,6 +10,9 @@ import AdminLocations from './views/AdminLocations';
 import AdminUsers from './views/AdminUsers';
 import AdminReports from './views/AdminReports';
 import AdminMessages from './views/AdminMessages';
+import AdminBudgets from './views/AdminBudgets';
+import AdminReportsSimple from './views/AdminReportsSimple';
+import AdminReportsAdvanced from './views/AdminReportsAdvanced';
 import Login from './views/Login';
 import { supabase } from './supabase';
 import { Loader2, AlertTriangle } from 'lucide-react';
@@ -40,7 +43,6 @@ const App: React.FC = () => {
           default_location_id: data.default_location_id
         });
       } else {
-        // Jeśli profil nie istnieje, tworzymy go w locie
         const { data: newProfile } = await supabase.from('profiles').insert({
           id: sessionUser.id,
           email: sessionUser.email,
@@ -105,6 +107,9 @@ const App: React.FC = () => {
       case 'locations': return <AdminLocations />;
       case 'users': return <AdminUsers />;
       case 'reports-data': return <AdminReports />;
+      case 'budgets': return <AdminBudgets />;
+      case 'analytics-simple': return <AdminReportsSimple />;
+      case 'analytics-advanced': return <AdminReportsAdvanced mode="monthly" />;
       default: return <Dashboard user={user} />;
     }
   };
@@ -120,7 +125,7 @@ const App: React.FC = () => {
       />
       <div className="flex-1 flex flex-col min-w-0">
         <Header onToggleSidebar={() => {}} user={user} />
-        <main className="flex-1 overflow-y-auto p-4 md:p-8">
+        <main className="flex-1 overflow-y-auto p-4 md:p-8 custom-scrollbar">
           <div className="max-w-7xl mx-auto">{renderContent()}</div>
         </main>
       </div>
