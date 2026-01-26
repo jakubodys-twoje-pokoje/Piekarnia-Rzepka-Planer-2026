@@ -42,32 +42,40 @@ const AdminUsers: React.FC = () => {
     setErrorMsg('');
 
     try {
-      // Jeśli wybrano 'none', do bazy wędruje null. W przeciwnym razie UUID.
       const locationIdValue = modal.default_location_id === 'none' ? null : modal.default_location_id;
 
       if (modal.isNew) {
+        // 1. Tworzymy konto w Auth
         const { data: authData, error: authError } = await supabase.auth.signUp({
           email: modal.email,
           password: modal.password,
+          options: {
+            // Zapobiega automatycznemu logowaniu nowego użytkownika (zależne od konfiguracji Supabase)
+            emailRedirectTo: window.location.origin 
+          }
         });
 
         if (authError) throw authError;
 
         if (authData.user) {
+          // 2. Używamy UPSERT zamiast UPDATE, aby mieć pewność, że rekord w profiles powstanie
           const { error: profileError } = await supabase
             .from('profiles')
-            .update({
+            .upsert({
+              id: authData.user.id,
+              email: modal.email,
               role: modal.role,
               first_name: modal.first_name,
               last_name: modal.last_name,
               default_location_id: locationIdValue,
-              email: modal.email
-            })
-            .eq('id', authData.user.id);
+            }, { onConflict: 'id' });
 
           if (profileError) throw profileError;
+        } else {
+          throw new Error("Użytkownik stworzony, ale nie zwrócono ID. Sprawdź czy email nie jest już w użyciu.");
         }
       } else {
+        // Edycja istniejącego
         const { error: updateError } = await supabase
           .from('profiles')
           .update({
@@ -88,14 +96,14 @@ const AdminUsers: React.FC = () => {
         fetchData();
       }, 1500);
     } catch (err: any) {
-      console.error(err);
+      console.error("User Creation Error:", err);
       setStatus('error');
-      setErrorMsg(err.message);
+      setErrorMsg(err.message || "Wystąpił nieoczekiwany błąd podczas tworzenia użytkownika.");
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Usunąć profil? System usunie tylko dane profilu, konto w Auth musi zostać usunięte ręcznie w panelu Supabase.')) return;
+    if (!confirm('Usunąć profil z bazy? Pamiętaj, że konto w Auth musi zostać usunięte ręcznie w panelu administracyjnym Supabase.')) return;
     try {
       const { error } = await supabase.from('profiles').delete().eq('id', id);
       if (error) throw error;
@@ -152,10 +160,10 @@ const AdminUsers: React.FC = () => {
             
             <div className="space-y-1 mb-6">
               <h3 className="text-lg font-black text-slate-800 break-all leading-tight">
-                {u.first_name && u.last_name ? `${u.first_name} ${u.last_name}` : u.email.split('@')[0]}
+                {u.first_name && u.last_name ? `${u.first_name} ${u.last_name}` : u.email?.split('@')[0] || 'Nowy Użytkownik'}
               </h3>
               <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                <Mail size={10} /> {u.email}
+                <Mail size={10} /> {u.email || 'Brak adresu'}
               </p>
               <div className="flex items-center gap-2 mt-2">
                 <Shield size={10} className={u.role === 'admin' ? 'text-amber-500' : 'text-slate-300'} />
@@ -198,11 +206,11 @@ const AdminUsers: React.FC = () => {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Imię</label>
-                    <input type="text" value={modal.first_name || ''} onChange={e => setModal({...modal, first_name: e.target.value})} className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl font-bold outline-none" placeholder="Jan" />
+                    <input type="text" required value={modal.first_name || ''} onChange={e => setModal({...modal, first_name: e.target.value})} className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl font-bold outline-none" placeholder="Jan" />
                   </div>
                   <div className="space-y-2">
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Nazwisko</label>
-                    <input type="text" value={modal.last_name || ''} onChange={e => setModal({...modal, last_name: e.target.value})} className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl font-bold outline-none" placeholder="Kowalski" />
+                    <input type="text" required value={modal.last_name || ''} onChange={e => setModal({...modal, last_name: e.target.value})} className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl font-bold outline-none" placeholder="Kowalski" />
                   </div>
                 </div>
 
@@ -239,8 +247,14 @@ const AdminUsers: React.FC = () => {
 
               <button type="submit" disabled={status === 'processing'} className="w-full py-5 bg-slate-900 text-white rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-xl flex items-center justify-center gap-3 disabled:opacity-50">
                 {status === 'processing' ? <Loader2 size={18} className="animate-spin" /> : (status === 'success' ? <CheckCircle2 className="text-emerald-400" /> : <Save size={18} />)}
-                {status === 'processing' ? 'PRZETWARZANIE...' : 'ZAPISZ ZMIANY'}
+                {status === 'processing' ? 'PRZETWARZANIE...' : 'ZAPISZ PRACOWNIKA'}
               </button>
+              
+              {modal.isNew && (
+                <p className="text-[9px] text-center text-slate-400 font-bold leading-relaxed px-4">
+                  UWAGA: Po stworzeniu użytkownika, system Supabase może wymagać potwierdzenia adresu email, jeśli opcja "Confirm Email" jest włączona w ustawieniach Auth.
+                </p>
+              )}
             </form>
           </div>
         </div>
