@@ -18,13 +18,13 @@ import AdminOrders from './views/AdminOrders';
 import AdminInventory from './views/AdminInventory';
 import Login from './views/Login';
 import { supabase } from './supabase';
-import { Loader2, AlertTriangle } from 'lucide-react';
+import { Loader2, AlertTriangle, Database } from 'lucide-react';
 
 const App: React.FC = () => {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [loading, setLoading] = useState(true);
-  const [dbError, setDbError] = useState(false);
+  const [dbError, setDbError] = useState<string | null>(null);
 
   const fetchProfile = async (sessionUser: any) => {
     try {
@@ -34,7 +34,13 @@ const App: React.FC = () => {
         .eq('id', sessionUser.id)
         .maybeSingle();
 
-      if (error) throw error;
+      if (error) {
+        if (error.code === 'PGRST116') {
+           // To nie jest błąd, po prostu brak profilu - stworzymy go zaraz
+        } else {
+           throw error;
+        }
+      }
 
       if (data) {
         setUser({
@@ -46,12 +52,15 @@ const App: React.FC = () => {
           default_location_id: data.default_location_id
         });
       } else {
-        const { data: newProfile } = await supabase.from('profiles').insert({
+        // Próba stworzenia profilu jeśli nie istnieje
+        const { data: newProfile, error: insertError } = await supabase.from('profiles').insert({
           id: sessionUser.id,
           email: sessionUser.email,
           role: 'user'
         }).select().single();
         
+        if (insertError) throw insertError;
+
         setUser({
           id: sessionUser.id,
           email: sessionUser.email,
@@ -61,10 +70,10 @@ const App: React.FC = () => {
           default_location_id: null
         });
       }
-      setDbError(false);
-    } catch (err) {
+      setDbError(null);
+    } catch (err: any) {
       console.error("Database fetch error:", err);
-      setDbError(true);
+      setDbError(err.message || "Błąd zapytania o schemat bazy danych.");
     }
   };
 
@@ -83,18 +92,27 @@ const App: React.FC = () => {
   }, []);
 
   if (loading) return (
-    <div className="h-screen flex items-center justify-center bg-slate-900">
+    <div className="h-screen flex flex-col items-center justify-center bg-slate-900 gap-4">
       <Loader2 className="animate-spin text-amber-500" size={40} />
+      <p className="text-[10px] font-black text-amber-500/50 uppercase tracking-[0.4em]">Inicjalizacja Systemu</p>
     </div>
   );
 
-  if (dbError && user) {
+  if (dbError) {
     return (
       <div className="h-screen flex flex-col items-center justify-center bg-slate-50 p-8 text-center">
-        <AlertTriangle size={64} className="text-rose-500 mb-6" />
-        <h1 className="text-2xl font-black text-slate-900 uppercase mb-4">Błąd połączenia z bazą</h1>
-        <p className="max-w-md text-slate-500 mb-8 font-medium">System nie może pobrać Twojego profilu. Upewnij się, że tabele w Supabase zostały poprawnie utworzone skryptem SQL.</p>
-        <button onClick={() => window.location.reload()} className="px-8 py-4 bg-slate-900 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-amber-600 transition-all">Odśwież System</button>
+        <div className="w-20 h-20 bg-rose-100 text-rose-600 rounded-3xl flex items-center justify-center mb-8 shadow-xl">
+          <Database size={40} />
+        </div>
+        <h1 className="text-2xl font-black text-slate-900 uppercase mb-4 tracking-tight">Błąd Schematu Bazy Danych</h1>
+        <p className="max-w-md text-slate-500 mb-8 font-medium">
+          System nie może odnaleźć wymaganych tabel. Prawdopodobnie nie uruchomiłeś skryptu SQL w Supabase Dashboard.<br/>
+          <span className="text-rose-500 font-bold block mt-4">Szczegóły: {dbError}</span>
+        </p>
+        <div className="flex gap-4">
+          <button onClick={() => window.location.reload()} className="px-8 py-4 bg-slate-900 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-amber-600 transition-all">Odśwież</button>
+          <a href="https://supabase.com/dashboard" target="_blank" rel="noreferrer" className="px-8 py-4 bg-white border border-slate-200 text-slate-900 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-slate-50 transition-all">Otwórz Supabase</a>
+        </div>
       </div>
     );
   }
