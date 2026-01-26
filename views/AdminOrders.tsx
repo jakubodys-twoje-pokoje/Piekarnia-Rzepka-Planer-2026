@@ -2,8 +2,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Package, Truck, Calendar, Printer, Loader2, 
-  LayoutGrid, Download, MapPin, ClipboardList,
-  Filter, ArrowRight, Table as TableIcon, List
+  Table as TableIcon, List
 } from 'lucide-react';
 import { supabase } from '../supabase';
 
@@ -31,7 +30,6 @@ const AdminOrders: React.FC = () => {
 
   useEffect(() => { fetchData(); }, [deliveryDate]);
 
-  // Sumowanie produktów dla całej produkcji
   const productionSummary = useMemo(() => {
     const summary: Record<string, { name: string, code: string, qty: number, section: string, category: string }> = {};
     orders.forEach(order => {
@@ -49,14 +47,36 @@ const AdminOrders: React.FC = () => {
         summary[item.product_id].qty += item.quantity;
       });
     });
-    return Object.values(summary).sort((a, b) => a.section.localeCompare(b.section) || a.category.localeCompare(b.category));
+
+    // To samo sortowanie co w formularzu zamówienia
+    return Object.values(summary).sort((a, b) => {
+      if (a.section !== b.section) return a.section === 'Piekarnia' ? -1 : 1;
+      
+      const codeA = a.code || '';
+      const codeB = b.code || '';
+      
+      if (codeA && codeB) {
+        const numA = parseInt(codeA.split('/')[0]);
+        const numB = parseInt(codeB.split('/')[0]);
+        if (!isNaN(numA) && !isNaN(numB)) return numA - numB;
+        return codeA.localeCompare(codeB);
+      }
+      if (codeA) return -1;
+      if (codeB) return 1;
+      return a.name.localeCompare(b.name);
+    });
   }, [orders]);
 
   const handlePrint = () => {
     window.print();
   };
 
-  if (loading) return <div className="p-40 flex justify-center"><Loader2 size={48} className="animate-spin text-amber-500" /></div>;
+  if (loading) return (
+    <div className="p-40 flex flex-col items-center justify-center gap-4">
+      <Loader2 size={64} className="animate-spin text-amber-500" />
+      <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Przetwarzanie danych produkcyjnych...</p>
+    </div>
+  );
 
   return (
     <div className="space-y-8 pb-24">
@@ -64,11 +84,12 @@ const AdminOrders: React.FC = () => {
         @media print {
           body * { visibility: hidden; background: white !important; }
           .printable-area, .printable-area * { visibility: visible; }
-          .printable-area { position: absolute; left: 0; top: 0; width: 100%; font-size: 10pt; }
+          .printable-area { position: absolute; left: 0; top: 0; width: 100%; font-size: 9pt; color: black !important; }
           .no-print { display: none !important; }
-          .printable-area table { border-collapse: collapse; width: 100%; border: 1px solid black; }
-          .printable-area th, .printable-area td { border: 1px solid black; padding: 4px; text-align: left; }
-          .printable-area h1 { margin-bottom: 10px; font-size: 16pt; font-weight: bold; }
+          .printable-area table { border-collapse: collapse; width: 100%; border: 1px solid #000; }
+          .printable-area th, .printable-area td { border: 1px solid #000; padding: 6px; text-align: left; }
+          .printable-area h1 { margin-bottom: 20px; font-size: 14pt; font-weight: 800; text-transform: uppercase; text-align: center; }
+          .printable-area .section-header { background: #f0f0f0 !important; font-weight: 900; text-transform: uppercase; }
         }
       `}</style>
 
@@ -78,8 +99,8 @@ const AdminOrders: React.FC = () => {
               <Package size={28}/>
            </div>
            <div>
-              <h1 className="text-3xl font-black text-slate-900 uppercase tracking-tight leading-none mb-1">Plan Produkcji</h1>
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Podsumowanie zamówień sieci Rzepka</p>
+              <h1 className="text-3xl font-black text-slate-900 uppercase tracking-tight leading-none mb-1">Lista Produkcyjna</h1>
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Sortowanie: Sekcja -> Kody -> Alfabetycznie</p>
            </div>
         </div>
 
@@ -99,9 +120,8 @@ const AdminOrders: React.FC = () => {
         </div>
       </div>
 
-      {/* Printable Area */}
       <div className="printable-area space-y-8">
-        <h1 className="hidden print:block text-center uppercase mb-6">Plan Produkcji Rzepka - Dostawa {deliveryDate}</h1>
+        <h1 className="hidden print:block">PLAN PRODUKCJI - DOSTAWA: {deliveryDate}</h1>
 
         {viewMode === 'summary' ? (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -142,7 +162,7 @@ const AdminOrders: React.FC = () => {
             </div>
           </div>
         ) : (
-          <div className="bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-sm overflow-x-auto">
+          <div className="bg-white p-6 rounded-[2.5rem] border border-slate-200 shadow-sm overflow-x-auto">
             <table className="w-full border-collapse">
               <thead>
                 <tr className="bg-slate-900 text-white">
@@ -164,7 +184,7 @@ const AdminOrders: React.FC = () => {
                       const orderForLoc = orders.find(o => o.location_id === loc.id);
                       const itemInOrder = orderForLoc?.order_items.find((oi: any) => oi.inventory.name === prod.name);
                       return (
-                        <td key={loc.id} className={`px-2 py-4 text-center text-sm font-black border-l border-slate-50 ${itemInOrder ? 'text-slate-900' : 'text-slate-200'}`}>
+                        <td key={loc.id} className={`px-2 py-4 text-center text-sm font-black border-l border-slate-50 ${itemInOrder ? 'text-slate-900' : 'text-slate-100'}`}>
                           {itemInOrder?.quantity || '-'}
                         </td>
                       );
@@ -176,17 +196,6 @@ const AdminOrders: React.FC = () => {
             </table>
           </div>
         )}
-      </div>
-
-      <div className="no-print bg-slate-900 p-8 rounded-[3rem] text-white shadow-2xl flex flex-col md:flex-row justify-between items-center gap-6">
-         <div className="flex items-center gap-4">
-           <Truck className="text-amber-500" size={40} />
-           <div>
-             <h4 className="text-xl font-black uppercase tracking-tight">Gotowość do wysyłki</h4>
-             <p className="text-xs font-bold text-white/50 uppercase tracking-widest">Wydrukuj listę i przekaż na piecownię</p>
-           </div>
-         </div>
-         <button onClick={handlePrint} className="px-10 py-5 bg-amber-500 text-white rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-xl hover:scale-105 transition-all">Generuj arkusz A4</button>
       </div>
     </div>
   );

@@ -1,9 +1,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { 
-  Package, Plus, Search, Edit2, Trash2, Tag, 
-  Loader2, X, Save, AlertCircle, Filter, 
-  LayoutGrid, ChevronDown, CheckCircle2 
+  Plus, Search, Edit2, Trash2, 
+  Loader2, X, Save, CheckCircle2 
 } from 'lucide-react';
 import { supabase } from '../supabase';
 
@@ -27,8 +26,25 @@ const AdminInventory: React.FC = () => {
 
   const load = async () => {
     setLoading(true);
-    const { data } = await supabase.from('inventory').select('*').order('section').order('category').order('name');
-    setItems(data || []);
+    const { data } = await supabase.from('inventory').select('*');
+    
+    // Ujednolicone sortowanie dla całej aplikacji
+    const sorted = (data || []).sort((a, b) => {
+      if (a.section !== b.section) return a.section === 'Piekarnia' ? -1 : 1;
+      const codeA = a.code || '';
+      const codeB = b.code || '';
+      if (codeA && codeB) {
+        const numA = parseInt(codeA.split('/')[0]);
+        const numB = parseInt(codeB.split('/')[0]);
+        if (!isNaN(numA) && !isNaN(numB)) return numA - numB;
+        return codeA.localeCompare(codeB);
+      }
+      if (codeA) return -1;
+      if (codeB) return 1;
+      return a.name.localeCompare(b.name);
+    });
+
+    setItems(sorted);
     setLoading(false);
   };
 
@@ -75,7 +91,7 @@ const AdminInventory: React.FC = () => {
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
         <div>
           <h1 className="text-3xl font-black text-slate-900 uppercase tracking-tight">Baza Towarów</h1>
-          <p className="text-slate-500 font-medium">Zarządzaj asortymentem Piekarni Rzepka.</p>
+          <p className="text-slate-500 font-medium">Zarządzaj asortymentem w ujednoliconej kolejności.</p>
         </div>
         <button 
           onClick={() => setModal({ name: '', code: '', section: 'Piekarnia', category: 'Chleby' })}
@@ -90,7 +106,7 @@ const AdminInventory: React.FC = () => {
           <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
           <input 
             type="text" 
-            placeholder="Szukaj nazwy lub kodu..." 
+            placeholder="Szybkie szukanie w bazie..." 
             value={search}
             onChange={e => setSearch(e.target.value)}
             className="w-full pl-12 pr-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl font-bold outline-none focus:bg-white focus:border-amber-500 transition-all"
@@ -131,7 +147,7 @@ const AdminInventory: React.FC = () => {
             <div className="flex justify-between items-center">
               <div>
                 <h3 className="text-2xl font-black text-slate-900 uppercase tracking-tight leading-none">{modal.id ? 'Edycja Towaru' : 'Nowy Towar'}</h3>
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-2">Szczegóły asortymentu</p>
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-2">Ustawienia inwentarza</p>
               </div>
               <button type="button" onClick={() => setModal(null)} className="p-2 hover:bg-slate-50 rounded-full"><X/></button>
             </div>
@@ -163,7 +179,7 @@ const AdminInventory: React.FC = () => {
 
             <button type="submit" className="w-full py-5 bg-slate-900 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-amber-600 shadow-xl transition-all flex items-center justify-center gap-2">
               {status === 'saving' ? <Loader2 size={18} className="animate-spin" /> : (status === 'success' ? <CheckCircle2 size={18} /> : <Save size={18}/>)}
-              Zapisz w bazie
+              Zapisz zmiany
             </button>
           </form>
         </div>

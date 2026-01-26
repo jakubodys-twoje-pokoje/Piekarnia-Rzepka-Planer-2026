@@ -1,9 +1,9 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { 
-  ShoppingBag, Truck, Calendar, Save, 
-  Loader2, AlertCircle, CheckCircle2, ChevronRight,
-  ArrowLeft, Search, PackageCheck
+  ShoppingBag, Truck, Save, 
+  Loader2, CheckCircle2, 
+  PackageCheck, Banknote
 } from 'lucide-react';
 import { supabase } from '../supabase';
 import { UserProfile } from '../types';
@@ -18,13 +18,37 @@ const OrderEntry: React.FC<{ user: UserProfile }> = ({ user }) => {
     return d.toISOString().split('T')[0];
   });
   const [status, setStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
-  const [search, setSearch] = useState('');
 
   useEffect(() => {
     const fetchInv = async () => {
       setLoading(true);
-      const { data } = await supabase.from('inventory').select('*').eq('is_active', true).order('section').order('category');
-      setInventory(data || []);
+      const { data } = await supabase.from('inventory').select('*').eq('is_active', true);
+      
+      // Zaawansowane sortowanie: Piekarnia -> Cukiernia -> Kod (numerycznie) -> Nazwa
+      const sorted = (data || []).sort((a, b) => {
+        // 1. Sekcja (Piekarnia przed Cukiernią)
+        if (a.section !== b.section) return a.section === 'Piekarnia' ? -1 : 1;
+
+        // 2. Kody (numerycznie jeśli to możliwe)
+        const codeA = a.code || '';
+        const codeB = b.code || '';
+        
+        if (codeA && codeB) {
+          const numA = parseInt(codeA.split('/')[0]);
+          const numB = parseInt(codeB.split('/')[0]);
+          if (!isNaN(numA) && !isNaN(numB)) return numA - numB;
+          return codeA.localeCompare(codeB);
+        }
+        
+        // Produkty z kodem wyżej niż te bez kodu
+        if (codeA) return -1;
+        if (codeB) return 1;
+
+        // 3. Alfabetycznie (głównie dla Cukierni bez kodów)
+        return a.name.localeCompare(b.name);
+      });
+
+      setInventory(sorted);
       setLoading(false);
     };
     fetchInv();
@@ -35,12 +59,10 @@ const OrderEntry: React.FC<{ user: UserProfile }> = ({ user }) => {
     inventory.forEach(item => {
       const key = `${item.section} - ${item.category}`;
       if (!grouped[key]) grouped[key] = [];
-      if (item.name.toLowerCase().includes(search.toLowerCase())) {
-        grouped[key].push(item);
-      }
+      grouped[key].push(item);
     });
     return grouped;
-  }, [inventory, search]);
+  }, [inventory]);
 
   const handleQtyChange = (id: string, val: string) => {
     const num = parseInt(val);
@@ -53,7 +75,6 @@ const OrderEntry: React.FC<{ user: UserProfile }> = ({ user }) => {
 
     setStatus('saving');
     try {
-      // 1. Stwórz nagłówek zamówienia
       const { data: order, error: orderErr } = await supabase.from('orders').insert({
         location_id: user.default_location_id,
         user_id: user.id,
@@ -63,7 +84,6 @@ const OrderEntry: React.FC<{ user: UserProfile }> = ({ user }) => {
 
       if (orderErr) throw orderErr;
 
-      // 2. Wstaw pozycje
       const itemsPayload = itemsToOrder.map(([pid, qty]) => ({
         order_id: order.id,
         product_id: pid,
@@ -76,91 +96,91 @@ const OrderEntry: React.FC<{ user: UserProfile }> = ({ user }) => {
       setStatus('success');
       setQuantities({});
       setTimeout(() => setStatus('idle'), 3000);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (err) {
       console.error(err);
       setStatus('error');
     }
   };
 
-  if (loading) return <div className="p-40 flex justify-center"><Loader2 size={48} className="animate-spin text-amber-500" /></div>;
+  if (loading) return (
+    <div className="p-40 flex flex-col items-center justify-center gap-4">
+      <Loader2 size={64} className="animate-spin text-amber-500" />
+      <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Ładowanie pełnej listy towarów...</p>
+    </div>
+  );
 
   return (
-    <div className="space-y-8 pb-24 max-w-4xl mx-auto">
-      <div className="bg-white p-8 rounded-[3rem] border border-slate-200 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-        <div>
-          <h1 className="text-3xl font-black text-slate-900 tracking-tight uppercase leading-none mb-2">Nowe Zamówienie</h1>
-          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Punkt: {user.default_location_id || 'Zaloguj się do punktu'}</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <div className="bg-slate-50 px-6 py-4 rounded-2xl border border-slate-100 flex flex-col items-end">
-            <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">Dostawa na dzień:</span>
-            <input type="date" value={deliveryDate} onChange={e => setDeliveryDate(e.target.value)} className="bg-transparent font-black text-slate-900 text-sm outline-none" />
+    <div className="space-y-8 pb-32 max-w-5xl mx-auto">
+      {/* Sticky Header with Actions */}
+      <div className="sticky top-4 z-[100] bg-white/80 backdrop-blur-xl p-6 rounded-[2.5rem] border border-slate-200 shadow-2xl flex flex-col md:flex-row justify-between items-center gap-4">
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 bg-slate-900 text-amber-500 rounded-2xl flex items-center justify-center shadow-lg">
+             <ShoppingBag size={24} />
+          </div>
+          <div>
+            <h1 className="text-xl font-black text-slate-900 tracking-tight uppercase leading-none">Formularz Zamówienia</h1>
+            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-1">Status: {user.default_location_id ? 'Połączono z punktem' : 'Brak przypisania'}</p>
           </div>
         </div>
-      </div>
 
-      <div className="bg-white p-6 rounded-[2.5rem] border border-slate-200 shadow-sm relative sticky top-4 z-20">
-        <div className="relative">
-          <Search size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" />
-          <input 
-            type="text" 
-            placeholder="Wpisz nazwę szukanego towaru..." 
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            className="w-full pl-12 pr-40 py-5 bg-slate-50 border border-slate-100 rounded-2xl font-bold outline-none focus:bg-white focus:border-amber-500 transition-all text-sm"
-          />
+        <div className="flex items-center gap-3 w-full md:w-auto">
+          <div className="bg-slate-50 px-4 py-2 rounded-xl border border-slate-100 flex items-center gap-3 flex-1 md:flex-none">
+             <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Dostawa:</span>
+             <input type="date" value={deliveryDate} onChange={e => setDeliveryDate(e.target.value)} className="bg-transparent font-black text-slate-900 text-xs outline-none" />
+          </div>
           <button 
             onClick={submitOrder}
             disabled={status === 'saving'}
-            className="absolute right-2 top-1/2 -translate-y-1/2 bg-slate-900 text-white px-8 py-3.5 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-amber-600 transition-all flex items-center gap-2"
+            className="bg-slate-900 text-white px-8 py-3.5 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-amber-600 transition-all flex items-center gap-2 shadow-xl active:scale-95 disabled:opacity-50"
           >
             {status === 'saving' ? <Loader2 size={14} className="animate-spin" /> : <Save size={14}/>}
-            Wyślij zamówienie
+            Zatwierdź i Wyślij
           </button>
         </div>
       </div>
 
-      <div className="space-y-12">
+      {/* Main List - Full View */}
+      <div className="space-y-16">
         {Object.entries(categorizedItems).map(([category, items]) => (
-          items.length > 0 && (
-            <div key={category} className="space-y-4">
-              <div className="flex items-center gap-4 ml-4">
-                <div className="w-8 h-8 bg-amber-100 text-amber-700 rounded-lg flex items-center justify-center font-black text-xs">
-                  {category.charAt(0)}
-                </div>
-                <h3 className="text-sm font-black text-slate-800 uppercase tracking-[0.2em]">{category}</h3>
-                <div className="h-[2px] bg-slate-100 flex-1"></div>
+          <div key={category} className="space-y-6">
+            <div className="flex items-center gap-4 px-4">
+              <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black text-sm shadow-sm ${category.startsWith('Piekarnia') ? 'bg-amber-100 text-amber-700' : 'bg-pink-100 text-pink-700'}`}>
+                {category.startsWith('Piekarnia') ? '🍞' : '🍰'}
               </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {items.map(item => (
-                  <div key={item.id} className="bg-white p-5 rounded-[2rem] border border-slate-100 hover:border-amber-500/30 transition-all flex items-center justify-between group">
-                    <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 bg-slate-50 rounded-xl flex items-center justify-center font-black text-slate-400 group-hover:text-amber-500 transition-colors text-xs">{item.code || '•'}</div>
-                      <span className="text-sm font-black text-slate-800 uppercase tracking-tight">{item.name}</span>
-                    </div>
-                    <div className="flex items-center gap-2 bg-slate-50 p-1.5 rounded-xl border border-slate-100 focus-within:border-amber-500 transition-all">
-                      <input 
-                        type="number" 
-                        min="0"
-                        placeholder="0"
-                        value={quantities[item.id] || ''}
-                        onChange={e => handleQtyChange(item.id, e.target.value)}
-                        className="w-16 bg-transparent text-center font-black text-slate-900 outline-none"
-                      />
-                      <span className="text-[10px] font-black text-slate-300 pr-2">SZT.</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
+              <h3 className="text-sm font-black text-slate-900 uppercase tracking-[0.25em]">{category}</h3>
+              <div className="h-[1px] bg-slate-100 flex-1"></div>
+              <span className="text-[10px] font-bold text-slate-300 uppercase">{items.length} poz.</span>
             </div>
-          )
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              {items.map(item => (
+                <div key={item.id} className="bg-white p-4 rounded-[1.8rem] border border-slate-100 hover:border-amber-500/30 transition-all flex items-center justify-between group">
+                  <div className="flex items-center gap-3 overflow-hidden">
+                    <div className="w-9 h-9 bg-slate-50 rounded-lg flex items-center justify-center font-black text-slate-400 group-hover:text-amber-500 transition-colors text-[10px] shrink-0">{item.code || '•'}</div>
+                    <span className="text-[12px] font-black text-slate-700 uppercase tracking-tight truncate">{item.name}</span>
+                  </div>
+                  <div className="flex items-center gap-2 bg-slate-50 p-1 rounded-xl border border-slate-100 focus-within:border-amber-500 transition-all shrink-0">
+                    <input 
+                      type="number" 
+                      min="0"
+                      placeholder="0"
+                      value={quantities[item.id] || ''}
+                      onChange={e => handleQtyChange(item.id, e.target.value)}
+                      className="w-12 bg-transparent text-center font-black text-slate-900 outline-none text-sm p-1"
+                    />
+                    <span className="text-[8px] font-black text-slate-300 pr-2">SZT</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         ))}
       </div>
 
       {status === 'success' && (
-        <div className="fixed bottom-12 left-1/2 -translate-x-1/2 bg-emerald-600 text-white px-10 py-5 rounded-full font-black text-xs uppercase tracking-[0.3em] shadow-2xl animate-in fade-in slide-in-from-bottom-8 flex items-center gap-3">
-          <CheckCircle2 /> Zamówienie wysłane pomyślnie!
+        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 bg-slate-900 text-white px-10 py-5 rounded-full font-black text-[10px] uppercase tracking-[0.3em] shadow-2xl animate-in fade-in slide-in-from-bottom-8 flex items-center gap-3 border border-amber-500/50">
+          <CheckCircle2 className="text-amber-500" /> Zamówienie zostało wysłane do produkcji!
         </div>
       )}
     </div>
