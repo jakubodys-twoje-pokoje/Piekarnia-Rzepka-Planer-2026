@@ -48,7 +48,6 @@ const AdminOrders: React.FC = () => {
       });
     });
 
-    // To samo sortowanie co w formularzu zamówienia
     return Object.values(summary).sort((a, b) => {
       if (a.section !== b.section) return a.section === 'Piekarnia' ? -1 : 1;
       
@@ -100,7 +99,7 @@ const AdminOrders: React.FC = () => {
            </div>
            <div>
               <h1 className="text-3xl font-black text-slate-900 uppercase tracking-tight leading-none mb-1">Lista Produkcyjna</h1>
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Sortowanie: Sekcja -> Kody -> Alfabetycznie</p>
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Sortowanie: Sekcja → Kody → Alfabetycznie</p>
            </div>
         </div>
 

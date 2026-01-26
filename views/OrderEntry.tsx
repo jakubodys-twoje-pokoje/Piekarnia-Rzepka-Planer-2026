@@ -1,9 +1,8 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { 
-  ShoppingBag, Truck, Save, 
-  Loader2, CheckCircle2, 
-  PackageCheck, Banknote
+  ShoppingBag, Save, 
+  Loader2, CheckCircle2
 } from 'lucide-react';
 import { supabase } from '../supabase';
 import { UserProfile } from '../types';
@@ -120,7 +119,7 @@ const OrderEntry: React.FC<{ user: UserProfile }> = ({ user }) => {
           </div>
           <div>
             <h1 className="text-xl font-black text-slate-900 tracking-tight uppercase leading-none">Formularz Zamówienia</h1>
-            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-1">Status: {user.default_location_id ? 'Połączono z punktem' : 'Brak przypisania'}</p>
+            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-1">Lokalizacja: {user.default_location_id ? 'Przypisana' : 'Brak'}</p>
           </div>
         </div>
 
