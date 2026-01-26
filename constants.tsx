@@ -7,7 +7,7 @@ import {
   Users as UsersIcon, 
   MapPin,
   ClipboardList,
-  Activity
+  MessageSquare
 } from 'lucide-react';
 
 export interface MenuItem {
@@ -33,6 +33,7 @@ export const LOCATIONS = [
 
 export const MENU_ITEMS: MenuItem[] = [
   { id: 'dashboard', label: 'Panel główny', icon: <LayoutDashboard size={20} />, roles: ['admin', 'user'] },
+  { id: 'messages', label: 'Komunikaty', icon: <MessageSquare size={20} />, roles: ['admin', 'user'] },
   { id: 'entry', label: 'Nowy raport', icon: <PlusCircle size={20} />, roles: ['user', 'admin'] },
   { id: 'history', label: 'Historia wpisów', icon: <History size={20} />, roles: ['user', 'admin'] },
   { id: 'reports-data', label: 'Dziennik raportów', icon: <ClipboardList size={20} />, roles: ['admin'] },

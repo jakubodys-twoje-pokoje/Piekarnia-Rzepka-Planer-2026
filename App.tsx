@@ -9,6 +9,7 @@ import HistoryView from './views/History';
 import AdminLocations from './views/AdminLocations';
 import AdminUsers from './views/AdminUsers';
 import AdminReports from './views/AdminReports';
+import AdminMessages from './views/AdminMessages';
 import Login from './views/Login';
 import { supabase } from './supabase';
 import { Loader2, AlertTriangle } from 'lucide-react';
@@ -37,7 +38,7 @@ const App: React.FC = () => {
           default_location_id: data.default_location_id
         });
       } else {
-        // Jeśli profil nie istnieje (trigger nie zadziałał), tworzymy go w locie
+        // Jeśli profil nie istnieje, tworzymy go w locie
         const { data: newProfile } = await supabase.from('profiles').insert({
           id: sessionUser.id,
           email: sessionUser.email,
@@ -94,6 +95,7 @@ const App: React.FC = () => {
   const renderContent = () => {
     switch (activeTab) {
       case 'dashboard': return <Dashboard user={user} />;
+      case 'messages': return <AdminMessages user={user} />;
       case 'entry': return <DataEntry user={user} />;
       case 'history': return <HistoryView user={user} />;
       case 'locations': return <AdminLocations />;
