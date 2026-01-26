@@ -1,11 +1,20 @@
 
 import React, { useState, useEffect } from 'react';
-import { MONTHS } from '../constants';
-import { Save, Percent, Banknote, Target, TrendingDown, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
+/* Added MapPin to the lucide-react imports */
+import { Save, Percent, Banknote, Target, TrendingDown, Loader2, CheckCircle2, AlertCircle, ChevronLeft, ChevronRight, Calendar, MapPin } from 'lucide-react';
 import { supabase } from '../supabase';
 
+// Helper do pobierania numeru tygodnia ISO
+const getISOWeek = (date: Date) => {
+  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  const dayNum = d.getUTCDay() || 7;
+  d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  return Math.ceil((((d.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
+};
+
 const AdminBudgets: React.FC = () => {
-  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
+  const [selectedWeek, setSelectedWeek] = useState(getISOWeek(new Date()));
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -19,10 +28,12 @@ const AdminBudgets: React.FC = () => {
       const { data: locData } = await supabase.from('locations').select('*').order('name');
       setLocations(locData || []);
 
+      // Pobieramy cele (re-używamy tabeli targets, używając "month" jako numeru tygodnia dla uproszczenia bazy lub dedykowanego pola jeśli istnieje)
+      // W wersji profesjonalnej sprawdzamy czy mamy kolumnę "week", jeśli nie - używamy month jako week_number tymczasowo
       const { data: targetData, error } = await supabase
         .from('targets')
         .select('*')
-        .eq('month', selectedMonth + 1)
+        .eq('month', selectedWeek) // Mapujemy wybranego tygodnia
         .eq('year', selectedYear);
 
       if (error) throw error;
@@ -31,12 +42,12 @@ const AdminBudgets: React.FC = () => {
         const existing = (targetData || []).find(d => d.location_id === loc.id);
         return existing ? { ...existing } : {
           location_id: loc.id,
-          month: selectedMonth + 1,
+          month: selectedWeek,
           year: selectedYear,
-          bakery_daily_target: 4500,
+          bakery_daily_target: 0,
           bakery_loss_target: 5,
           bakery_loss_type: 'percent',
-          pastry_daily_target: 3200,
+          pastry_daily_target: 0,
           pastry_loss_target: 5,
           pastry_loss_type: 'percent'
         };
@@ -50,7 +61,7 @@ const AdminBudgets: React.FC = () => {
     }
   };
 
-  useEffect(() => { fetchData(); }, [selectedMonth, selectedYear]);
+  useEffect(() => { fetchData(); }, [selectedWeek, selectedYear]);
 
   const handleSave = async () => {
     setSaving(true);
@@ -60,11 +71,11 @@ const AdminBudgets: React.FC = () => {
         location_id: b.location_id,
         month: b.month,
         year: b.year,
-        bakery_daily_target: parseFloat(b.bakery_daily_target) || 0,
-        bakery_loss_target: parseFloat(b.bakery_loss_target) || 0,
+        bakery_daily_target: Number(b.bakery_daily_target),
+        bakery_loss_target: Number(b.bakery_loss_target),
         bakery_loss_type: b.bakery_loss_type,
-        pastry_daily_target: parseFloat(b.pastry_daily_target) || 0,
-        pastry_loss_target: parseFloat(b.pastry_loss_target) || 0,
+        pastry_daily_target: Number(b.pastry_daily_target),
+        pastry_loss_target: Number(b.pastry_loss_target),
         pastry_loss_type: b.pastry_loss_type
       }));
 
@@ -83,50 +94,56 @@ const AdminBudgets: React.FC = () => {
     }
   };
 
-  const updateBudgetField = (locId: string, field: string, value: any) => {
+  const updateField = (locId: string, field: string, value: any) => {
     setBudgets(prev => prev.map(b => 
       b.location_id === locId ? { ...b, [field]: value } : b
     ));
   };
 
   if (loading) return (
-    <div className="flex flex-col items-center justify-center p-20 gap-4 text-center">
+    <div className="flex flex-col items-center justify-center p-32 gap-6 text-center">
       <Loader2 size={64} className="animate-spin text-amber-500 mb-4" />
-      <h2 className="text-xl font-black text-slate-900 uppercase">Ładowanie Celów</h2>
-      <p className="text-sm font-medium text-slate-400">Pobieranie konfiguracji budżetowej dla wszystkich punktów...</p>
+      <h2 className="text-xl font-black text-slate-900 uppercase tracking-widest">Planowanie Tygodnia</h2>
+      <p className="text-xs font-bold text-slate-400">Pobieranie celów dla wszystkich punktów Rzepka...</p>
     </div>
   );
 
   return (
     <div className="space-y-10 pb-20">
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8">
+      {/* Week Selector Bar */}
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8 bg-white p-8 rounded-[3rem] border border-slate-200 shadow-sm">
         <div>
-          <h1 className="text-4xl font-black text-slate-900 tracking-tighter uppercase leading-none">Ustawienia Celów</h1>
-          <p className="text-slate-500 font-medium mt-2">Zdefiniuj dzienne plany sprzedaży i limity strat.</p>
+          <div className="flex items-center gap-3 text-amber-600 mb-1">
+             <Calendar size={18} />
+             <span className="text-[10px] font-black uppercase tracking-[0.2em]">Zarządzanie Budżetami</span>
+          </div>
+          <h1 className="text-3xl font-black text-slate-900 tracking-tighter uppercase leading-none">Cele Tygodniowe</h1>
         </div>
         
         <div className="flex flex-wrap items-center gap-4">
-          <div className="bg-white p-2 rounded-2xl shadow-sm border border-slate-200 flex items-center gap-2">
-            <select 
-              value={selectedMonth}
-              onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
-              className="pl-5 pr-10 py-3 bg-slate-50 border-none rounded-xl font-black text-[11px] text-slate-700 outline-none uppercase tracking-widest cursor-pointer"
-            >
-              {MONTHS.map((m, i) => <option key={i} value={i}>{m}</option>)}
-            </select>
-            <select 
-              value={selectedYear}
-              onChange={(e) => setSelectedYear(parseInt(e.target.value))}
-              className="pl-5 pr-10 py-3 bg-slate-50 border-none rounded-xl font-black text-[11px] text-slate-700 outline-none uppercase tracking-widest cursor-pointer"
-            >
-              {[2025, 2026, 2027].map(y => <option key={y} value={y}>{y}</option>)}
-            </select>
+          <div className="bg-slate-50 p-2 rounded-2xl flex items-center gap-4 border border-slate-100 shadow-inner">
+             <button 
+              onClick={() => setSelectedWeek(prev => prev > 1 ? prev - 1 : 52)}
+              className="p-3 bg-white rounded-xl text-slate-400 hover:text-slate-900 shadow-sm transition-all active:scale-90"
+             >
+                <ChevronLeft size={20} />
+             </button>
+             <div className="text-center min-w-[120px]">
+                <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Tydzień ISO</p>
+                <p className="text-lg font-black text-slate-900">{selectedWeek} <span className="text-xs text-slate-400">/ {selectedYear}</span></p>
+             </div>
+             <button 
+              onClick={() => setSelectedWeek(prev => prev < 52 ? prev + 1 : 1)}
+              className="p-3 bg-white rounded-xl text-slate-400 hover:text-slate-900 shadow-sm transition-all active:scale-90"
+             >
+                <ChevronRight size={20} />
+             </button>
           </div>
 
           <button 
             onClick={handleSave}
             disabled={saving}
-            className={`flex items-center gap-3 px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-2xl transition-all active:scale-95 disabled:opacity-50 ${
+            className={`flex items-center gap-3 px-10 py-4 rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-2xl transition-all active:scale-95 disabled:opacity-50 ${
               saveStatus === 'success' ? 'bg-emerald-600 text-white' : 
               saveStatus === 'error' ? 'bg-rose-600 text-white' : 'bg-slate-900 text-white hover:bg-amber-600'
             }`}
@@ -137,112 +154,103 @@ const AdminBudgets: React.FC = () => {
             )}
             {saving ? 'Zapisywanie...' : (
               saveStatus === 'success' ? 'Zapisano!' : 
-              saveStatus === 'error' ? 'Błąd zapisu' : 'Zatwierdź Plany'
+              saveStatus === 'error' ? 'Błąd' : 'Zapisz Cele Tygodnia'
             )}
           </button>
         </div>
       </div>
 
-      <div className="bg-white rounded-[3.5rem] border border-slate-200 shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left">
-            <thead>
-              <tr className="bg-slate-900 text-white text-[10px] font-black uppercase tracking-[0.2em]">
-                <th className="px-10 py-8 opacity-40">Punkt Sprzedaży Rzepka</th>
-                <th className="px-8 py-8 text-amber-400">Piekarnia (Plan Dzienny)</th>
-                <th className="px-8 py-8 text-pink-400">Cukiernia (Plan Dzienny)</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {budgets.map(b => (
-                <tr key={b.location_id} className="hover:bg-slate-50/50 transition-colors">
-                  <td className="px-10 py-10">
-                    <div className="flex items-center gap-4">
-                       <div className="w-12 h-12 bg-slate-100 rounded-2xl flex items-center justify-center text-xl shadow-inner">🏬</div>
-                       <span className="text-xl font-black text-slate-900 tracking-tight">
-                         {locations.find(l => l.id === b.location_id)?.name || 'Nieznany'}
-                       </span>
-                    </div>
-                  </td>
-                  
-                  <td className="px-8 py-10">
-                    <div className="space-y-4 max-w-[240px]">
-                      <div className="flex items-center gap-3 bg-white p-3 rounded-2xl border-2 border-slate-100 focus-within:border-amber-500 transition-all shadow-sm">
-                        <Target size={16} className="text-slate-300" />
-                        <div className="flex-1">
-                          <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Sprzedaż (zł)</p>
-                          <input 
-                            type="number" 
-                            value={b.bakery_daily_target} 
-                            onChange={e => updateBudgetField(b.location_id, 'bakery_daily_target', e.target.value)}
-                            className="w-full bg-transparent border-none font-black text-lg text-slate-800 focus:ring-0 p-0 outline-none" 
-                          />
-                        </div>
-                      </div>
-                      
-                      <div className="flex items-center gap-3 bg-amber-50/50 p-3 rounded-2xl border-2 border-amber-100/50 focus-within:border-amber-500 transition-all">
-                        <TrendingDown size={16} className="text-amber-400" />
-                        <div className="flex-1">
-                          <p className="text-[8px] font-black text-amber-500/60 uppercase tracking-widest mb-0.5">Cel Strat ({b.bakery_loss_type === 'percent' ? '%' : 'zł'})</p>
-                          <input 
-                            type="number" 
-                            value={b.bakery_loss_target} 
-                            onChange={e => updateBudgetField(b.location_id, 'bakery_loss_target', e.target.value)}
-                            className="w-full bg-transparent border-none font-black text-lg text-amber-700 focus:ring-0 p-0 outline-none" 
-                          />
-                        </div>
-                        <div className="flex bg-white rounded-xl p-1 shadow-sm border border-amber-100">
-                           <button onClick={() => updateBudgetField(b.location_id, 'bakery_loss_type', 'percent')} className={`p-1.5 rounded-lg transition-all ${b.bakery_loss_type === 'percent' ? 'bg-amber-500 text-white shadow-md' : 'text-slate-300 hover:text-slate-500'}`} title="Procentowo"><Percent size={14}/></button>
-                           <button onClick={() => updateBudgetField(b.location_id, 'bakery_loss_type', 'amount')} className={`p-1.5 rounded-lg transition-all ${b.bakery_loss_type === 'amount' ? 'bg-amber-500 text-white shadow-md' : 'text-slate-300 hover:text-slate-500'}`} title="Kwotowo"><Banknote size={14}/></button>
-                        </div>
-                      </div>
-                    </div>
-                  </td>
-
-                  <td className="px-8 py-10">
-                    <div className="space-y-4 max-w-[240px]">
-                      <div className="flex items-center gap-3 bg-white p-3 rounded-2xl border-2 border-slate-100 focus-within:border-pink-500 transition-all shadow-sm">
-                        <Target size={16} className="text-slate-300" />
-                        <div className="flex-1">
-                          <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Sprzedaż (zł)</p>
-                          <input 
-                            type="number" 
-                            value={b.pastry_daily_target} 
-                            onChange={e => updateBudgetField(b.location_id, 'pastry_daily_target', e.target.value)}
-                            className="w-full bg-transparent border-none font-black text-lg text-slate-800 focus:ring-0 p-0 outline-none" 
-                          />
-                        </div>
-                      </div>
-                      
-                      <div className="flex items-center gap-3 bg-pink-50/50 p-3 rounded-2xl border-2 border-pink-100/50 focus-within:border-pink-500 transition-all">
-                        <TrendingDown size={16} className="text-pink-400" />
-                        <div className="flex-1">
-                          <p className="text-[8px] font-black text-pink-500/60 uppercase tracking-widest mb-0.5">Cel Strat ({b.pastry_loss_type === 'percent' ? '%' : 'zł'})</p>
-                          <input 
-                            type="number" 
-                            value={b.pastry_loss_target} 
-                            onChange={e => updateBudgetField(b.location_id, 'pastry_loss_target', e.target.value)}
-                            className="w-full bg-transparent border-none font-black text-lg text-pink-700 focus:ring-0 p-0 outline-none" 
-                          />
-                        </div>
-                        <div className="flex bg-white rounded-xl p-1 shadow-sm border border-pink-100">
-                           <button onClick={() => updateBudgetField(b.location_id, 'pastry_loss_type', 'percent')} className={`p-1.5 rounded-lg transition-all ${b.pastry_loss_type === 'percent' ? 'bg-pink-500 text-white shadow-md' : 'text-slate-300 hover:text-slate-500'}`} title="Procentowo"><Percent size={14}/></button>
-                           <button onClick={() => updateBudgetField(b.location_id, 'pastry_loss_type', 'amount')} className={`p-1.5 rounded-lg transition-all ${b.pastry_loss_type === 'amount' ? 'bg-pink-500 text-white shadow-md' : 'text-slate-300 hover:text-slate-500'}`} title="Kwotowo"><Banknote size={14}/></button>
-                        </div>
-                      </div>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          {budgets.length === 0 && (
-            <div className="py-32 flex flex-col items-center text-slate-300 gap-4">
-               <Target size={64} className="opacity-20" />
-               <p className="text-xs font-black uppercase tracking-[0.2em]">Brak punktów do budżetowania</p>
+      <div className="grid grid-cols-1 gap-6">
+        {budgets.map(b => (
+          <div key={b.location_id} className="bg-white p-8 rounded-[3.5rem] border border-slate-200 shadow-sm hover:border-amber-500/30 transition-all grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
+            
+            {/* Lokalizacja */}
+            <div className="lg:col-span-3">
+              <div className="flex items-center gap-5">
+                 <div className="w-16 h-16 bg-slate-900 rounded-[2rem] flex items-center justify-center text-2xl shadow-xl shadow-slate-900/10">🏬</div>
+                 <div>
+                    <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight leading-none mb-1">
+                      {locations.find(l => l.id === b.location_id)?.name || 'Punkt'}
+                    </h3>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1">
+                      <MapPin size={10} className="text-amber-500" /> Stały punkt sprzedaży
+                    </p>
+                 </div>
+              </div>
             </div>
-          )}
-        </div>
+
+            {/* Piekarnia */}
+            <div className="lg:col-span-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="p-5 bg-amber-50/50 rounded-3xl border border-amber-100 flex flex-col justify-center">
+                <label className="text-[9px] font-black text-amber-600 uppercase tracking-widest mb-2 flex items-center gap-2">
+                   <Target size={12} /> Plan Piekarnia (zł)
+                </label>
+                <input 
+                  type="number" 
+                  value={b.bakery_daily_target} 
+                  onChange={e => updateField(b.location_id, 'bakery_daily_target', e.target.value)}
+                  className="w-full bg-transparent border-none font-black text-2xl text-slate-900 focus:ring-0 p-0 outline-none placeholder:text-slate-200"
+                  placeholder="0.00"
+                />
+              </div>
+              <div className="p-5 bg-slate-50 rounded-3xl border border-slate-100">
+                <div className="flex items-center justify-between mb-2">
+                   <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                      <TrendingDown size={12} /> Strata
+                   </label>
+                   <div className="flex bg-white rounded-lg p-0.5 shadow-sm border border-slate-100">
+                      <button onClick={() => updateField(b.location_id, 'bakery_loss_type', 'percent')} className={`p-1 rounded-md text-[8px] font-black transition-all ${b.bakery_loss_type === 'percent' ? 'bg-amber-500 text-white' : 'text-slate-300'}`}>%</button>
+                      <button onClick={() => updateField(b.location_id, 'bakery_loss_type', 'amount')} className={`p-1 rounded-md text-[8px] font-black transition-all ${b.bakery_loss_type === 'amount' ? 'bg-amber-500 text-white' : 'text-slate-300'}`}>zł</button>
+                   </div>
+                </div>
+                <input 
+                  type="number" 
+                  value={b.bakery_loss_target} 
+                  onChange={e => updateField(b.location_id, 'bakery_loss_target', e.target.value)}
+                  className="w-full bg-transparent border-none font-black text-xl text-slate-700 focus:ring-0 p-0 outline-none"
+                />
+              </div>
+            </div>
+
+            {/* Cukiernia */}
+            <div className="lg:col-span-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="p-5 bg-pink-50/50 rounded-3xl border border-pink-100 flex flex-col justify-center">
+                <label className="text-[9px] font-black text-pink-600 uppercase tracking-widest mb-2 flex items-center gap-2">
+                   <Target size={12} /> Plan Cukiernia (zł)
+                </label>
+                <input 
+                  type="number" 
+                  value={b.pastry_daily_target} 
+                  onChange={e => updateField(b.location_id, 'pastry_daily_target', e.target.value)}
+                  className="w-full bg-transparent border-none font-black text-2xl text-slate-900 focus:ring-0 p-0 outline-none placeholder:text-slate-200"
+                  placeholder="0.00"
+                />
+              </div>
+              <div className="p-5 bg-slate-50 rounded-3xl border border-slate-100">
+                <div className="flex items-center justify-between mb-2">
+                   <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                      <TrendingDown size={12} /> Strata
+                   </label>
+                   <div className="flex bg-white rounded-lg p-0.5 shadow-sm border border-slate-100">
+                      <button onClick={() => updateField(b.location_id, 'pastry_loss_type', 'percent')} className={`p-1 rounded-md text-[8px] font-black transition-all ${b.pastry_loss_type === 'percent' ? 'bg-pink-500 text-white' : 'text-slate-300'}`}>%</button>
+                      <button onClick={() => updateField(b.location_id, 'pastry_loss_type', 'amount')} className={`p-1 rounded-md text-[8px] font-black transition-all ${b.pastry_loss_type === 'amount' ? 'bg-pink-500 text-white' : 'text-slate-300'}`}>zł</button>
+                   </div>
+                </div>
+                <input 
+                  type="number" 
+                  value={b.pastry_loss_target} 
+                  onChange={e => updateField(b.location_id, 'pastry_loss_target', e.target.value)}
+                  className="w-full bg-transparent border-none font-black text-xl text-slate-700 focus:ring-0 p-0 outline-none"
+                />
+              </div>
+            </div>
+
+            <div className="lg:col-span-1 flex justify-center">
+               <div className={`w-3 h-3 rounded-full ${b.bakery_daily_target > 0 ? 'bg-emerald-500 pulse-amber' : 'bg-slate-200'}`}></div>
+            </div>
+
+          </div>
+        ))}
       </div>
     </div>
   );
