@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { Send, Globe, History, User, Loader2, MessageSquare, CheckCircle, Mail, ShieldAlert, Archive } from 'lucide-react';
+import { Send, Globe, RefreshCw, User, Loader2, MessageSquare, CheckCircle, Mail, ShieldAlert, Archive, Inbox } from 'lucide-react';
 import { UserProfile } from '../types';
 import { supabase } from '../supabase';
 
@@ -156,14 +156,14 @@ const AdminMessages: React.FC<AdminMessagesProps> = ({ user }) => {
       <div className="lg:col-span-2 space-y-6">
         <div className="flex items-center justify-between bg-white p-4 rounded-3xl border border-slate-200 no-print">
            <div className="flex gap-2">
-             <button onClick={() => setViewTab('unread')} className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${viewTab === 'unread' ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-400 hover:text-slate-600'}`}>
-                Nieprzeczytane
+             <button onClick={() => setViewTab('unread')} className={`flex items-center gap-2 px-4 sm:px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${viewTab === 'unread' ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-400 hover:text-slate-600'}`}>
+                <Inbox size={14} /> Nieprzeczytane
              </button>
-             <button onClick={() => setViewTab('history')} className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${viewTab === 'history' ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-400 hover:text-slate-600'}`}>
-                Archiwum
+             <button onClick={() => setViewTab('history')} className={`flex items-center gap-2 px-4 sm:px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${viewTab === 'history' ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-400 hover:text-slate-600'}`}>
+                <Archive size={14} /> Archiwum
              </button>
            </div>
-           <button onClick={fetchData} className="p-2 text-slate-300 hover:text-slate-900"><History size={18}/></button>
+           <button onClick={fetchData} title="Odśwież" className="p-2 text-slate-300 hover:text-slate-900 transition-all hover:rotate-180 duration-300"><RefreshCw size={16}/></button>
         </div>
 
         {loading ? (
