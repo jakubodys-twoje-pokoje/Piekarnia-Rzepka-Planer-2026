@@ -24,6 +24,7 @@ const App: React.FC = () => {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [loading, setLoading] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(() => window.innerWidth >= 1024);
 
   const fetchProfile = async (sessionUser: any) => {
     try {
@@ -101,17 +102,18 @@ const App: React.FC = () => {
   return (
     <div className="flex h-screen bg-slate-50 overflow-hidden">
       <div className="no-print h-full">
-        <Sidebar 
-          isOpen={true} 
-          activeTab={activeTab} 
-          onTabChange={setActiveTab} 
-          userRole={user.role} 
+        <Sidebar
+          isOpen={sidebarOpen}
+          activeTab={activeTab}
+          onTabChange={(id) => { setActiveTab(id); if (window.innerWidth < 768) setSidebarOpen(false); }}
+          userRole={user.role}
           onLogout={() => supabase.auth.signOut()}
+          onToggle={() => setSidebarOpen(prev => !prev)}
         />
       </div>
       <div className="flex-1 flex flex-col min-w-0 h-full">
         <div className="no-print shrink-0">
-          <Header onToggleSidebar={() => {}} user={user} />
+          <Header onToggleSidebar={() => setSidebarOpen(prev => !prev)} user={user} />
         </div>
         <main className="flex-1 overflow-y-auto p-4 md:p-8 custom-scrollbar print:p-0 print:overflow-visible">
           <div className="max-w-7xl mx-auto print:max-w-none print:m-0">{renderContent()}</div>

@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { MENU_ITEMS, MenuItem } from '../constants';
-import { LogOut, ChevronDown, ChevronRight } from 'lucide-react';
+import { LogOut, ChevronDown, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
 import { Role } from '../types';
 import { supabase } from '../supabase';
 
@@ -11,9 +11,10 @@ interface SidebarProps {
   onTabChange: (id: string) => void;
   userRole: Role;
   onLogout: () => void;
+  onToggle: () => void;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ isOpen, activeTab, onTabChange, userRole, onLogout }) => {
+const Sidebar: React.FC<SidebarProps> = ({ isOpen, activeTab, onTabChange, userRole, onLogout, onToggle }) => {
   const [expandedItems, setExpandedItems] = useState<string[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
 
@@ -145,10 +146,14 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, activeTab, onTabChange, userR
         })}
       </nav>
 
-      <div className="p-4 border-t border-slate-100 shrink-0">
+      <div className="p-4 border-t border-slate-100 shrink-0 space-y-1">
         <button onClick={onLogout} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-rose-600 hover:bg-rose-50 transition-all font-bold text-[13px]">
           <LogOut size={20} />
           {isOpen && <span className="tracking-tight uppercase text-[10px] font-black">Wyloguj system</span>}
+        </button>
+        <button onClick={onToggle} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-400 hover:bg-slate-50 hover:text-slate-600 transition-all font-bold text-[13px]">
+          {isOpen ? <ChevronsLeft size={20} /> : <ChevronsRight size={20} />}
+          {isOpen && <span className="tracking-tight uppercase text-[10px] font-black">Zwiń menu</span>}
         </button>
       </div>
     </div>
