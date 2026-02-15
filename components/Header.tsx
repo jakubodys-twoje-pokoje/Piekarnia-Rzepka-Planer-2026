@@ -1,14 +1,13 @@
 
 import React from 'react';
-import { Menu, User, ShieldCheck } from 'lucide-react';
+import { User, ShieldCheck } from 'lucide-react';
 import { UserProfile } from '../types';
 
 interface HeaderProps {
-  onToggleSidebar: () => void;
   user: UserProfile;
 }
 
-const Header: React.FC<HeaderProps> = ({ onToggleSidebar, user }) => {
+const Header: React.FC<HeaderProps> = ({ user }) => {
   const isAdmin = user.role === 'admin';
   const displayName = user.first_name && user.last_name 
     ? `${user.first_name} ${user.last_name}` 
@@ -17,13 +16,6 @@ const Header: React.FC<HeaderProps> = ({ onToggleSidebar, user }) => {
   return (
     <header className="bg-white border-b border-slate-200 h-16 flex items-center justify-between px-6 shrink-0 z-10">
       <div className="flex items-center gap-4">
-        <button 
-          onClick={onToggleSidebar}
-          className="p-2 text-slate-500 hover:bg-slate-50 rounded-lg transition-colors"
-        >
-          <Menu size={20} />
-        </button>
-        
         {isAdmin && (
           <div className="hidden sm:flex items-center gap-2 text-amber-700 bg-amber-50 px-3 py-1.5 rounded-full border border-amber-100">
             <ShieldCheck size={14} />

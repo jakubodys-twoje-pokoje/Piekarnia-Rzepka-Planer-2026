@@ -101,7 +101,10 @@ const App: React.FC = () => {
 
   return (
     <div className="flex h-screen bg-slate-50 overflow-hidden">
-      <div className="no-print h-full">
+      {sidebarOpen && (
+        <div className="fixed inset-0 bg-black/20 z-20 md:hidden" onClick={() => setSidebarOpen(false)} />
+      )}
+      <div className={`no-print h-full shrink-0 ${sidebarOpen ? 'fixed z-30 md:relative md:z-auto' : ''}`}>
         <Sidebar
           isOpen={sidebarOpen}
           activeTab={activeTab}
@@ -113,7 +116,7 @@ const App: React.FC = () => {
       </div>
       <div className="flex-1 flex flex-col min-w-0 h-full">
         <div className="no-print shrink-0">
-          <Header onToggleSidebar={() => setSidebarOpen(prev => !prev)} user={user} />
+          <Header user={user} />
         </div>
         <main className="flex-1 overflow-y-auto p-4 md:p-8 custom-scrollbar print:p-0 print:overflow-visible">
           <div className="max-w-7xl mx-auto print:max-w-none print:m-0">{renderContent()}</div>

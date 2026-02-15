@@ -84,7 +84,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, activeTab, onTabChange, userR
   const isSubItemActive = (item: MenuItem) => item.subItems?.some(sub => sub.id === activeTab);
 
   return (
-    <div className={`bg-white border-r border-slate-200 transition-all duration-300 flex flex-col ${isOpen ? 'w-64' : 'w-20'}`}>
+    <div className={`bg-white border-r border-slate-200 transition-all duration-300 flex flex-col ${isOpen ? 'w-56 md:w-64' : 'w-20'}`}>
       <div className="p-6 flex items-center gap-3 border-b border-slate-100 shrink-0">
         <div className="w-10 h-10 bg-white rounded-xl p-1.5 flex items-center justify-center shrink-0 shadow-lg border border-amber-500/20">
           <img 
