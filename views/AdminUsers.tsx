@@ -45,31 +45,37 @@ const AdminUsers: React.FC = () => {
       const locationIdValue = modal.default_location_id === 'none' ? null : modal.default_location_id;
 
       if (modal.isNew) {
-        const { data: authData, error: authError } = await supabase.auth.signUp({
-          email: modal.email,
-          password: modal.password,
-        });
+        // Use Edge Function to create user (bypasses email rate limits)
+        const { data: sessionData } = await supabase.auth.getSession();
+        const token = sessionData?.session?.access_token;
 
-        if (authError) {
-          if (authError.message.includes("Email rate limit exceeded")) {
-             throw new Error("Limit wysyłek e-mail przekroczony. Supabase pozwala na max 3 nowych użytkowników na godzinę. Spróbuj później.");
-          }
-          throw authError;
+        if (!token) {
+          throw new Error('Brak sesji - zaloguj się ponownie');
         }
 
-        if (authData.user) {
-          const { error: profileError } = await supabase
-            .from('profiles')
-            .upsert({
-              id: authData.user.id,
+        const response = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-user`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`,
+            },
+            body: JSON.stringify({
               email: modal.email,
-              role: modal.role,
+              password: modal.password,
               first_name: modal.first_name,
               last_name: modal.last_name,
+              role: modal.role,
               default_location_id: locationIdValue,
-            }, { onConflict: 'id' });
+            }),
+          }
+        );
 
-          if (profileError) throw profileError;
+        const result = await response.json();
+
+        if (!result.success) {
+          throw new Error(result.error || 'Nie udało się utworzyć użytkownika');
         }
       } else {
         const { error: updateError } = await supabase
