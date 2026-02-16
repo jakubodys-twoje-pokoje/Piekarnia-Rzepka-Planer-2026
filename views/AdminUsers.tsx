@@ -46,37 +46,24 @@ const AdminUsers: React.FC = () => {
 
       if (modal.isNew) {
         // Use Edge Function to create user (bypasses email rate limits)
-        const { data: sessionData } = await supabase.auth.getSession();
-        const token = sessionData?.session?.access_token;
+        // supabase.functions.invoke() auto-manages auth token + apikey headers
+        const { data, error: fnError } = await supabase.functions.invoke('create-user', {
+          body: {
+            email: modal.email,
+            password: modal.password,
+            first_name: modal.first_name,
+            last_name: modal.last_name,
+            role: modal.role,
+            default_location_id: locationIdValue,
+          },
+        });
 
-        if (!token) {
-          throw new Error('Brak sesji - zaloguj się ponownie');
+        if (fnError) {
+          throw new Error(fnError.message || 'Nie udało się wywołać funkcji');
         }
 
-        const response = await fetch(
-          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-user`,
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${token}`,
-              'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
-            },
-            body: JSON.stringify({
-              email: modal.email,
-              password: modal.password,
-              first_name: modal.first_name,
-              last_name: modal.last_name,
-              role: modal.role,
-              default_location_id: locationIdValue,
-            }),
-          }
-        );
-
-        const result = await response.json();
-
-        if (!result.success) {
-          throw new Error(result.error || 'Nie udało się utworzyć użytkownika');
+        if (!data?.success) {
+          throw new Error(data?.error || 'Nie udało się utworzyć użytkownika');
         }
       } else {
         const { error: updateError } = await supabase
