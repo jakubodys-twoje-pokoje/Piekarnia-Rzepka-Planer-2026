@@ -143,11 +143,10 @@ const DataEntry: React.FC<{ user: UserProfile }> = ({ user }) => {
           </div>
           <div className="space-y-2">
             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Punkt Sprzedaży</label>
-            <select 
-              value={formData.locationId} 
-              onChange={e => setFormData({...formData, locationId: e.target.value})} 
+            <select
+              value={formData.locationId}
+              onChange={e => setFormData({...formData, locationId: e.target.value})}
               className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl font-bold outline-none"
-              disabled={user.role !== 'admin' && !!user.default_location_id}
             >
               {locations.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
             </select>

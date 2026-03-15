@@ -143,11 +143,10 @@ const OrderEntry: React.FC<{ user: UserProfile }> = ({ user }) => {
               <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Punkt Sprzedaży</label>
               <div className="flex items-center gap-2">
                  <MapPin size={14} className="text-amber-500" />
-                 <select 
-                   value={selectedLocation} 
+                 <select
+                   value={selectedLocation}
                    onChange={e => setSelectedLocation(e.target.value)}
                    className="bg-transparent font-black text-slate-800 text-sm outline-none w-full"
-                   disabled={user.role !== 'admin' && !!user.default_location_id}
                  >
                    <option value="">Wybierz punkt...</option>
                    {locations.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}

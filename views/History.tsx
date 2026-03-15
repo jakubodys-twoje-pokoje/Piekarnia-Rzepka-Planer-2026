@@ -12,44 +12,48 @@ const HistoryView: React.FC<HistoryProps> = ({ user }) => {
   const [history, setHistory] = useState<any[]>([]);
   const [locations, setLocations] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedLocation, setSelectedLocation] = useState(user.default_location_id || '');
+
+  const fetchReports = async (locationId: string) => {
+    setLoading(true);
+    try {
+      let query = supabase
+        .from('daily_reports')
+        .select('*')
+        .order('date', { ascending: false })
+        .limit(30);
+
+      if (locationId) {
+        query = query.eq('location_id', locationId);
+      }
+
+      const { data, error } = await query;
+      if (error) throw error;
+      setHistory(data || []);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     const fetchData = async () => {
-      setLoading(true);
-      try {
-        // Pobierz lokalizacje dla nazw
-        const { data: locData } = await supabase.from('locations').select('id, name');
-        setLocations(locData || []);
+      const { data: locData } = await supabase.from('locations').select('id, name').order('name');
+      setLocations(locData || []);
 
-        // Jeśli brak lokalizacji i nie admin -> nic nie rób
-        if (!user.default_location_id && user.role !== 'admin') {
-          setHistory([]);
-          setLoading(false);
-          return;
-        }
-
-        let query = supabase
-          .from('daily_reports')
-          .select('*')
-          .order('date', { ascending: false })
-          .limit(30);
-
-        if (user.default_location_id) {
-          query = query.eq('location_id', user.default_location_id);
-        }
-
-        const { data, error } = await query;
-        if (error) throw error;
-        setHistory(data || []);
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
+      // Set initial location
+      const initialLoc = user.default_location_id || (locData && locData.length > 0 ? locData[0].id : '');
+      setSelectedLocation(initialLoc);
+      fetchReports(initialLoc);
     };
-
     fetchData();
-  }, [user.default_location_id, user.role]);
+  }, []);
+
+  const handleLocationChange = (locId: string) => {
+    setSelectedLocation(locId);
+    fetchReports(locId);
+  };
 
   const getLocationName = (id: string) => locations.find(l => l.id === id)?.name || 'Nieznany punkt';
 
@@ -59,8 +63,18 @@ const HistoryView: React.FC<HistoryProps> = ({ user }) => {
         <div>
           <h1 className="text-2xl font-black text-slate-900 uppercase tracking-tight">Ostatnie Raporty</h1>
           <p className="text-slate-500 font-medium">
-            {user.default_location_id ? `Podgląd dla punktu: ${getLocationName(user.default_location_id)}` : 'Podgląd globalny (Admin)'}
+            Podgląd dla punktu: {getLocationName(selectedLocation)}
           </p>
+        </div>
+        <div className="flex items-center gap-3 bg-white p-2 rounded-2xl border border-slate-200 shadow-sm">
+          <MapPin size={16} className="text-amber-500 ml-2" />
+          <select
+            value={selectedLocation}
+            onChange={e => handleLocationChange(e.target.value)}
+            className="bg-transparent font-black text-xs text-slate-700 uppercase tracking-widest outline-none pr-4"
+          >
+            {locations.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
+          </select>
         </div>
       </div>
 

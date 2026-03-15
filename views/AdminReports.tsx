@@ -22,7 +22,7 @@ const AdminReports: React.FC = () => {
 
       let query = supabase
         .from('daily_reports')
-        .select(`*`)
+        .select(`*, profiles:user_id(first_name, last_name, email)`)
         .eq('date', selectedDate);
 
       if (viewScope !== 'global') {
@@ -32,11 +32,17 @@ const AdminReports: React.FC = () => {
       const { data: repData, error } = await query;
       if (error) throw error;
 
-      const enrichedData = (repData || []).map(report => ({
-        ...report,
-        location_name: locData?.find(l => l.id === report.location_id)?.name || 'Nieznany',
-        user_email: 'Pracownik #' + report.user_id.substring(0, 5)
-      }));
+      const enrichedData = (repData || []).map(report => {
+        const profile = report.profiles;
+        const userName = profile?.first_name && profile?.last_name
+          ? `${profile.first_name} ${profile.last_name}`
+          : profile?.email?.split('@')[0] || 'Nieznany';
+        return {
+          ...report,
+          location_name: locData?.find(l => l.id === report.location_id)?.name || 'Nieznany',
+          user_name: userName
+        };
+      });
 
       setReports(enrichedData);
     } catch (err: any) {
@@ -155,7 +161,7 @@ const AdminReports: React.FC = () => {
                 <tr key={report.id} className="hover:bg-slate-50 transition-colors group">
                   <td className="px-8 py-7">
                     <p className="text-sm font-black text-slate-800 uppercase tracking-tight">{report.location_name}</p>
-                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{report.user_email}</p>
+                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{report.user_name}</p>
                   </td>
                   <td className="px-6 py-7">
                     <div className="flex flex-col">
