@@ -161,7 +161,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, activeTab, onTabChange, userR
 
               {isOpen && hasSubItems && isExpanded && (
                 <div className="ml-5 mt-1 space-y-1 border-l-2 border-slate-100 pl-4 animate-in slide-in-from-top-2 duration-300">
-                  {item.subItems!.map(sub => (
+                  {item.subItems!.filter(sub => sub.roles.includes(userRole)).map(sub => (
                     <button key={sub.id} onClick={() => onTabChange(sub.id)} className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-[12px] transition-all ${activeTab === sub.id ? 'text-amber-700 font-black bg-amber-50/50 translate-x-1' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50 font-bold'}`}>
                       <span className={activeTab === sub.id ? 'text-amber-500' : 'text-slate-300'}>{sub.icon}</span>
                       {sub.label}
