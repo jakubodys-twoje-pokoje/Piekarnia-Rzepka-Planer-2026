@@ -103,13 +103,41 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, activeTab, onTabChange, userR
           const isActive = activeTab === item.id || isSubItemActive(item);
           const showBadge = item.id === 'messages' && unreadCount > 0;
 
+          // W zwiniętym menu: pokaż wszystkie podkategorie jako osobne przyciski
+          if (!isOpen && hasSubItems) {
+            return (
+              <div key={item.id} className="space-y-1">
+                {/* Nagłówek kategorii (nieaktywny) */}
+                <div className="px-3 py-1.5 text-slate-300 flex justify-center" title={item.label}>
+                  <span className="text-slate-300">{item.icon}</span>
+                </div>
+                {/* Wszystkie podkategorie */}
+                {item.subItems!.filter(sub => sub.roles.includes(userRole)).map(sub => (
+                  <button
+                    key={sub.id}
+                    onClick={() => onTabChange(sub.id)}
+                    title={sub.label}
+                    className={`w-full flex items-center justify-center px-3 py-2.5 rounded-xl transition-all ${
+                      activeTab === sub.id
+                        ? 'bg-amber-600 text-white shadow-lg shadow-amber-600/20'
+                        : 'text-slate-400 hover:bg-slate-50 hover:text-slate-700'
+                    }`}
+                  >
+                    <span className={activeTab === sub.id ? 'text-white' : 'text-slate-400'}>{sub.icon}</span>
+                  </button>
+                ))}
+              </div>
+            );
+          }
+
           return (
             <div key={item.id} className="space-y-1">
               <button
                 onClick={() => hasSubItems ? toggleExpand(item.id) : onTabChange(item.id)}
+                title={!isOpen ? item.label : undefined}
                 className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all relative ${
                   isActive && !hasSubItems
-                    ? 'bg-amber-600 text-white shadow-lg shadow-amber-600/20 font-bold' 
+                    ? 'bg-amber-600 text-white shadow-lg shadow-amber-600/20 font-bold'
                     : isActive && hasSubItems
                     ? 'bg-slate-900 text-white shadow-md font-bold'
                     : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700 font-medium'
@@ -119,7 +147,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, activeTab, onTabChange, userR
                   <span className={`${isActive ? (isActive && !hasSubItems ? 'text-white' : 'text-amber-500') : 'text-slate-400'}`}>{item.icon}</span>
                   {isOpen && <span className="text-[13px] tracking-tight">{item.label}</span>}
                 </div>
-                
+
                 {showBadge && (
                   <div className={`absolute ${isOpen ? 'right-10' : 'right-2'} top-1/2 -translate-y-1/2 w-5 h-5 bg-rose-600 text-white text-[10px] font-black rounded-full flex items-center justify-center shadow-[0_0_15px_rgba(225,29,72,0.4)] border-2 border-white animate-pulse`}>
                     {unreadCount}
