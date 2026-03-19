@@ -102,7 +102,7 @@ const AdminOrders: React.FC = () => {
     <div className="space-y-8 pb-24 max-w-[1600px] mx-auto print:p-0 print:m-0">
       <style>{`
         @media print {
-          @page { size: A4 landscape; margin: 8mm; }
+          @page { size: A4 portrait; margin: 8mm; }
 
           * {
             -webkit-print-color-adjust: exact !important;
@@ -240,7 +240,7 @@ const AdminOrders: React.FC = () => {
            </div>
            <div className="no-print text-slate-400 flex items-center gap-2">
               <Info size={14} />
-              <p className="text-[9px] font-bold uppercase tracking-widest">Wydruk zoptymalizowany dla orientacji poziomej (Landscape).</p>
+              <p className="text-[9px] font-bold uppercase tracking-widest">Wydruk zoptymalizowany dla orientacji pionowej (A4).</p>
            </div>
         </div>
 
