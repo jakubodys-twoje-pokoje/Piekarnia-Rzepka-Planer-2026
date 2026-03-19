@@ -185,7 +185,7 @@ const AdminReports: React.FC = () => {
              <button onClick={goToPrevDay} className="p-2 text-white/60 hover:text-amber-500 hover:bg-white/10 rounded-xl transition-all">
                <ChevronLeft size={18} />
              </button>
-             <input type="date" value={selectedDate} onChange={e => setSelectedDate(e.target.value)} className="px-3 py-2 bg-transparent text-white text-[11px] font-black outline-none cursor-pointer" />
+             <input type="date" value={selectedDate} onChange={e => setSelectedDate(e.target.value)} className="px-3 py-2 bg-transparent text-white text-[11px] font-black outline-none cursor-pointer [color-scheme:dark]" />
              <button onClick={goToNextDay} className="p-2 text-white/60 hover:text-amber-500 hover:bg-white/10 rounded-xl transition-all">
                <ChevronRight size={18} />
              </button>
