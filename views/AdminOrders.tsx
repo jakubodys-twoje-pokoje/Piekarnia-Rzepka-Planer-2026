@@ -102,75 +102,100 @@ const AdminOrders: React.FC = () => {
     <div className="space-y-8 pb-24 max-w-[1600px] mx-auto print:p-0 print:m-0">
       <style>{`
         @media print {
-          @page { size: A4 portrait; margin: 8mm; }
+          @page {
+            size: A4 portrait;
+            margin: 10mm;
+          }
 
-          * {
-            -webkit-print-color-adjust: exact !important;
-            print-color-adjust: exact !important;
+          *, *::before, *::after {
+            background: transparent !important;
+            color: black !important;
+            box-shadow: none !important;
+            text-shadow: none !important;
           }
 
           html, body {
+            width: 100% !important;
             height: auto !important;
+            margin: 0 !important;
+            padding: 0 !important;
             overflow: visible !important;
             background: white !important;
+          }
+
+          body > div,
+          body > div > div,
+          main,
+          .printable-area {
+            display: block !important;
+            position: static !important;
+            width: 100% !important;
+            height: auto !important;
+            max-width: none !important;
+            max-height: none !important;
+            overflow: visible !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            border: none !important;
+            border-radius: 0 !important;
           }
 
           .no-print { display: none !important; }
 
-          .printable-area {
-            display: block !important;
-            width: 100% !important;
-            padding: 0 !important;
-            margin: 0 !important;
-            border: none !important;
-            box-shadow: none !important;
-            overflow: visible !important;
-          }
-
           table {
             width: 100% !important;
             border-collapse: collapse !important;
-            table-layout: auto !important;
-            border: 1.5pt solid black !important;
+            border: 1pt solid black !important;
             page-break-inside: auto !important;
+            background: white !important;
           }
 
-          thead { display: table-header-group !important; }
-          tbody { display: table-row-group !important; }
+          thead {
+            display: table-header-group !important;
+          }
+
+          tbody {
+            display: table-row-group !important;
+          }
 
           tr {
             page-break-inside: avoid !important;
             page-break-after: auto !important;
+            background: white !important;
           }
 
           th, td {
             border: 0.5pt solid black !important;
-            padding: 2pt 4pt !important;
-            font-size: 7pt !important;
+            padding: 3pt 4pt !important;
+            font-size: 8pt !important;
             color: black !important;
-            font-weight: 700 !important;
+            font-weight: 600 !important;
             text-transform: uppercase !important;
+            background: white !important;
           }
 
-          th { background: #f0f0f0 !important; }
-
-          /* Usuwamy sticky w druku */
-          th.sticky, td.sticky {
-            position: static !important;
-            background: white !important;
-            box-shadow: none !important;
-            border-right: 0.5pt solid black !important;
+          th {
+            font-weight: 800 !important;
+            border-bottom: 1pt solid black !important;
           }
 
           .section-row td {
-            background: #e0e0e0 !important;
-            font-size: 7pt !important;
+            font-weight: 900 !important;
+            font-size: 9pt !important;
             text-align: center !important;
+            border-top: 1.5pt solid black !important;
+            padding: 6pt 4pt !important;
           }
-          
-          .print-sum-col {
-            background: #eee !important;
-            border-left: 1.5pt solid black !important;
+
+          /* Sticky cells - remove positioning */
+          .sticky {
+            position: static !important;
+          }
+
+          /* Sum column */
+          td:last-child, th:last-child {
+            font-weight: 900 !important;
+            border-left: 1pt solid black !important;
           }
         }
       `}</style>
