@@ -102,48 +102,69 @@ const AdminOrders: React.FC = () => {
     <div className="space-y-8 pb-24 max-w-[1600px] mx-auto print:p-0 print:m-0">
       <style>{`
         @media print {
-          @page { size: A4 landscape; margin: 5mm; }
-          body { background: white !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          @page { size: A4 landscape; margin: 8mm; }
+
+          * {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
+
+          html, body {
+            height: auto !important;
+            overflow: visible !important;
+            background: white !important;
+          }
+
           .no-print { display: none !important; }
-          
-          .printable-area { 
-            display: block !important; 
-            width: 100% !important; 
-            padding: 0 !important; 
+
+          .printable-area {
+            display: block !important;
+            width: 100% !important;
+            padding: 0 !important;
             margin: 0 !important;
             border: none !important;
             box-shadow: none !important;
+            overflow: visible !important;
           }
-          
-          table { 
-            width: 100% !important; 
-            border-collapse: collapse !important; 
-            table-layout: auto !important; 
+
+          table {
+            width: 100% !important;
+            border-collapse: collapse !important;
+            table-layout: auto !important;
             border: 1.5pt solid black !important;
+            page-break-inside: auto !important;
           }
-          
-          th, td { 
-            border: 0.5pt solid black !important; 
-            padding: 2pt 1pt !important; 
-            font-size: 7.5pt !important; 
+
+          thead { display: table-header-group !important; }
+          tbody { display: table-row-group !important; }
+
+          tr {
+            page-break-inside: avoid !important;
+            page-break-after: auto !important;
+          }
+
+          th, td {
+            border: 0.5pt solid black !important;
+            padding: 2pt 4pt !important;
+            font-size: 7pt !important;
             color: black !important;
             font-weight: 700 !important;
             text-transform: uppercase !important;
           }
-          
+
           th { background: #f0f0f0 !important; }
-          
+
           /* Usuwamy sticky w druku */
-          th.sticky, td.sticky { 
-            position: static !important; 
-            background: white !important; 
+          th.sticky, td.sticky {
+            position: static !important;
+            background: white !important;
             box-shadow: none !important;
             border-right: 0.5pt solid black !important;
           }
-          
-          .section-row td { 
-            background: #e0e0e0 !important; 
-            font-size: 8pt !important;
+
+          .section-row td {
+            background: #e0e0e0 !important;
+            font-size: 7pt !important;
             text-align: center !important;
           }
           
