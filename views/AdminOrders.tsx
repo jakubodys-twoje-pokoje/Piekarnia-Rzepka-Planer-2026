@@ -1,8 +1,9 @@
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { 
-  Package, Printer, Loader2, 
-  Table as TableIcon, List, MapPin, Info
+import {
+  Package, Printer, Loader2,
+  Table as TableIcon, List, MapPin, Info,
+  ChevronLeft, ChevronRight, Calendar
 } from 'lucide-react';
 import { supabase } from '../supabase';
 
@@ -76,6 +77,19 @@ const AdminOrders: React.FC = () => {
   }, [orders]);
 
   const handlePrint = () => window.print();
+
+  const changeDate = (days: number) => {
+    const d = new Date(deliveryDate);
+    d.setDate(d.getDate() + days);
+    setDeliveryDate(d.toISOString().split('T')[0]);
+  };
+
+  const formatDatePL = (dateStr: string) => {
+    const d = new Date(dateStr);
+    const days = ['Niedziela', 'Poniedziałek', 'Wtorek', 'Środa', 'Czwartek', 'Piątek', 'Sobota'];
+    const day = days[d.getDay()];
+    return `${day}, ${d.getDate().toString().padStart(2, '0')}.${(d.getMonth() + 1).toString().padStart(2, '0')}.${d.getFullYear()}`;
+  };
 
   if (loading) return (
     <div className="p-40 flex flex-col items-center justify-center gap-4">
@@ -161,11 +175,38 @@ const AdminOrders: React.FC = () => {
                Rozdzielnia
              </button>
           </div>
-          <div className="bg-slate-900 p-1.5 rounded-2xl flex items-center gap-2 pr-4 shadow-xl">
-             <input type="date" value={deliveryDate} onChange={e => setDeliveryDate(e.target.value)} className="bg-transparent text-white font-black text-xs outline-none px-3" />
-             <button onClick={handlePrint} className="p-2.5 bg-amber-500 text-white rounded-xl hover:bg-amber-600">
-                <Printer size={18} />
-             </button>
+          <div className="flex items-center gap-2">
+            <div className="bg-slate-900 p-1.5 rounded-2xl flex items-center gap-1 shadow-xl">
+              <button
+                onClick={() => changeDate(-1)}
+                className="p-2.5 text-white hover:bg-slate-700 rounded-xl transition-all"
+                title="Poprzedni dzień"
+              >
+                <ChevronLeft size={18} />
+              </button>
+              <div className="relative">
+                <input
+                  type="date"
+                  value={deliveryDate}
+                  onChange={e => setDeliveryDate(e.target.value)}
+                  className="absolute inset-0 opacity-0 cursor-pointer w-full"
+                />
+                <div className="px-4 py-2 text-white font-black text-xs flex items-center gap-2 cursor-pointer hover:bg-slate-700 rounded-xl transition-all">
+                  <Calendar size={14} className="text-amber-500" />
+                  <span>{formatDatePL(deliveryDate)}</span>
+                </div>
+              </div>
+              <button
+                onClick={() => changeDate(1)}
+                className="p-2.5 text-white hover:bg-slate-700 rounded-xl transition-all"
+                title="Następny dzień"
+              >
+                <ChevronRight size={18} />
+              </button>
+            </div>
+            <button onClick={handlePrint} className="p-3 bg-amber-500 text-white rounded-xl hover:bg-amber-600 shadow-xl">
+              <Printer size={18} />
+            </button>
           </div>
         </div>
       </div>
