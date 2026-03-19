@@ -1,8 +1,8 @@
 
 import React, { useState, useEffect } from 'react';
-import { 
-  CheckCircle, AlertTriangle, Edit2, Trash2, 
-  Globe, MapPin, X, RefreshCw, Filter 
+import {
+  CheckCircle, CheckCircle2, AlertTriangle, Edit2, Trash2,
+  Globe, MapPin, X, RefreshCw, Filter, ChevronLeft, ChevronRight
 } from 'lucide-react';
 import { supabase } from '../supabase';
 
@@ -106,6 +106,31 @@ const AdminReports: React.FC = () => {
     }
   };
 
+  const handleVerify = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('daily_reports')
+        .update({ verified: true })
+        .eq('id', id);
+      if (error) throw error;
+      fetchData();
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const goToPrevDay = () => {
+    const date = new Date(selectedDate);
+    date.setDate(date.getDate() - 1);
+    setSelectedDate(date.toISOString().split('T')[0]);
+  };
+
+  const goToNextDay = () => {
+    const date = new Date(selectedDate);
+    date.setDate(date.getDate() + 1);
+    setSelectedDate(date.toISOString().split('T')[0]);
+  };
+
   return (
     <div className="space-y-8 pb-20">
       {editModal && (
@@ -156,9 +181,17 @@ const AdminReports: React.FC = () => {
                {locations.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
              </select>
            </div>
-           <input type="date" value={selectedDate} onChange={e => setSelectedDate(e.target.value)} className="px-5 py-3 bg-slate-50 border border-slate-100 rounded-2xl text-[11px] font-black text-slate-700 outline-none" />
-           <button onClick={fetchData} className="p-3.5 bg-slate-900 text-white hover:bg-amber-600 rounded-2xl transition-all shadow-lg">
-             <RefreshCw size={20} className={loading ? 'animate-spin' : ''} />
+           <div className="flex items-center gap-1 bg-slate-900 p-1.5 rounded-2xl shadow-xl">
+             <button onClick={goToPrevDay} className="p-2 text-white/60 hover:text-amber-500 hover:bg-white/10 rounded-xl transition-all">
+               <ChevronLeft size={18} />
+             </button>
+             <input type="date" value={selectedDate} onChange={e => setSelectedDate(e.target.value)} className="px-3 py-2 bg-transparent text-white text-[11px] font-black outline-none cursor-pointer" />
+             <button onClick={goToNextDay} className="p-2 text-white/60 hover:text-amber-500 hover:bg-white/10 rounded-xl transition-all">
+               <ChevronRight size={18} />
+             </button>
+           </div>
+           <button onClick={fetchData} className="p-3.5 bg-slate-100 text-slate-600 hover:bg-amber-500 hover:text-white rounded-2xl transition-all">
+             <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
            </button>
         </div>
       </div>
@@ -203,9 +236,12 @@ const AdminReports: React.FC = () => {
                     </div>
                   </td>
                   <td className="px-8 py-7 text-right">
-                    <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all">
-                      <button onClick={() => setEditModal(report)} className="p-2.5 bg-white border border-slate-200 text-slate-400 hover:text-amber-600 rounded-xl transition-all shadow-sm"><Edit2 size={16}/></button>
-                      <button onClick={() => handleDelete(report.id)} className="p-2.5 bg-white border border-slate-200 text-slate-400 hover:text-rose-600 rounded-xl transition-all shadow-sm"><Trash2 size={16}/></button>
+                    <div className="flex justify-end gap-2 lg:opacity-0 lg:group-hover:opacity-100 transition-all">
+                      {!report.verified && (
+                        <button onClick={() => handleVerify(report.id)} className="p-2.5 bg-emerald-50 border border-emerald-200 text-emerald-500 hover:bg-emerald-500 hover:text-white hover:border-emerald-500 rounded-xl transition-all shadow-sm" title="Zatwierdź raport"><CheckCircle2 size={16}/></button>
+                      )}
+                      <button onClick={() => setEditModal(report)} className="p-2.5 bg-white border border-slate-200 text-amber-500 lg:text-slate-400 hover:text-amber-600 rounded-xl transition-all shadow-sm" title="Edytuj"><Edit2 size={16}/></button>
+                      <button onClick={() => handleDelete(report.id)} className="p-2.5 bg-white border border-slate-200 text-rose-500 lg:text-slate-400 hover:text-rose-600 rounded-xl transition-all shadow-sm" title="Usuń"><Trash2 size={16}/></button>
                     </div>
                   </td>
                 </tr>
