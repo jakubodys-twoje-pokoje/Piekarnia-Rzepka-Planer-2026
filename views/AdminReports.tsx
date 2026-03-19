@@ -22,7 +22,7 @@ const AdminReports: React.FC = () => {
 
       let query = supabase
         .from('daily_reports')
-        .select(`*, profiles:user_id(first_name, last_name, email)`)
+        .select('*')
         .eq('date', selectedDate);
 
       if (viewScope !== 'global') {
@@ -30,10 +30,29 @@ const AdminReports: React.FC = () => {
       }
 
       const { data: repData, error } = await query;
-      if (error) throw error;
+
+      if (error) {
+        console.error('Query error:', error);
+        throw error;
+      }
+
+      // Pobierz profile osobno
+      const userIds = [...new Set((repData || []).map(r => r.user_id).filter(Boolean))];
+      let profilesMap: Record<string, any> = {};
+
+      if (userIds.length > 0) {
+        const { data: profilesData } = await supabase
+          .from('profiles')
+          .select('id, first_name, last_name, email')
+          .in('id', userIds);
+
+        (profilesData || []).forEach(p => {
+          profilesMap[p.id] = p;
+        });
+      }
 
       const enrichedData = (repData || []).map(report => {
-        const profile = report.profiles;
+        const profile = profilesMap[report.user_id];
         const userName = profile?.first_name && profile?.last_name
           ? `${profile.first_name} ${profile.last_name}`
           : profile?.email?.split('@')[0] || 'Nieznany';

@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { TrendingUp, TrendingDown, DollarSign, PieChart, Calendar, Globe, MapPin, Loader2, Award, Info, Percent } from 'lucide-react';
+import { TrendingUp, TrendingDown, DollarSign, PieChart, Calendar, Globe, MapPin, Loader2, Award, Info, Percent, ChevronLeft, ChevronRight } from 'lucide-react';
 import { supabase } from '../supabase';
 
 const MONTHS = ['Styczeń', 'Luty', 'Marzec', 'Kwiecień', 'Maj', 'Czerwiec', 'Lipiec', 'Sierpień', 'Wrzesień', 'Październik', 'Listopad', 'Grudzień'];
@@ -23,6 +23,24 @@ const AdminReportsSimple: React.FC = () => {
   const now = new Date();
   const [selectedMonth, setSelectedMonth] = useState(now.getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState(now.getFullYear());
+
+  const goToPrevMonth = () => {
+    if (selectedMonth === 1) {
+      setSelectedMonth(12);
+      setSelectedYear(y => y - 1);
+    } else {
+      setSelectedMonth(m => m - 1);
+    }
+  };
+
+  const goToNextMonth = () => {
+    if (selectedMonth === 12) {
+      setSelectedMonth(1);
+      setSelectedYear(y => y + 1);
+    } else {
+      setSelectedMonth(m => m + 1);
+    }
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -110,22 +128,27 @@ const AdminReportsSimple: React.FC = () => {
             <option value="global">🌍 WSZYSTKIE PUNKTY</option>
             {locations.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
           </select>
-          <div className="flex items-center gap-2 bg-slate-900 p-1.5 rounded-2xl shadow-xl">
+          <div className="flex items-center gap-1 bg-slate-900 p-1.5 rounded-2xl shadow-xl">
+            <button onClick={goToPrevMonth} className="p-2 text-white/60 hover:text-amber-500 hover:bg-white/10 rounded-xl transition-all">
+              <ChevronLeft size={18} />
+            </button>
             <select
               value={selectedMonth}
               onChange={(e) => setSelectedMonth(Number(e.target.value))}
-              className="px-4 py-2 bg-transparent text-white rounded-xl font-black text-[10px] uppercase tracking-widest outline-none cursor-pointer"
+              className="px-3 py-2 bg-transparent text-white rounded-xl font-black text-[10px] uppercase tracking-widest outline-none cursor-pointer"
             >
               {MONTHS.map((m, i) => <option key={i} value={i + 1} className="text-slate-900">{m}</option>)}
             </select>
             <select
               value={selectedYear}
               onChange={(e) => setSelectedYear(Number(e.target.value))}
-              className="px-4 py-2 bg-transparent text-white rounded-xl font-black text-[10px] uppercase tracking-widest outline-none cursor-pointer"
+              className="px-3 py-2 bg-transparent text-white rounded-xl font-black text-[10px] uppercase tracking-widest outline-none cursor-pointer"
             >
               {[2024, 2025, 2026].map(y => <option key={y} value={y} className="text-slate-900">{y}</option>)}
             </select>
-            <Calendar size={14} className="text-amber-500 mr-2" />
+            <button onClick={goToNextMonth} className="p-2 text-white/60 hover:text-amber-500 hover:bg-white/10 rounded-xl transition-all">
+              <ChevronRight size={18} />
+            </button>
           </div>
         </div>
       </div>
@@ -249,7 +272,7 @@ const AdminReportsSimple: React.FC = () => {
           <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest flex items-center gap-3">
             <Award size={20} className="text-amber-500" /> Ranking Efektywności Punktów
           </h3>
-          <span className="bg-slate-900 text-white px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest">Bieżący Miesiąc</span>
+          <span className="bg-slate-900 text-white px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest">{MONTHS[selectedMonth - 1]} {selectedYear}</span>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
            {stats.ranking.slice(0, 8).map((l, i) => (
