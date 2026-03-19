@@ -205,7 +205,7 @@ const AdminReports: React.FC = () => {
                 <th className="px-6 py-6 text-[10px] font-black uppercase tracking-widest opacity-50">Piekarnia (S/L)</th>
                 <th className="px-6 py-6 text-[10px] font-black uppercase tracking-widest opacity-50">Cukiernia (S/L)</th>
                 <th className="px-6 py-6 text-[10px] font-black uppercase tracking-widest opacity-50">Weryfikacja</th>
-                <th className="px-8 py-6 text-right text-[10px] font-black uppercase tracking-widest opacity-50">Opcje</th>
+                <th className="px-4 py-6 text-right text-[10px] font-black uppercase tracking-widest opacity-50 sticky right-0 bg-slate-900">Opcje</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -235,13 +235,13 @@ const AdminReports: React.FC = () => {
                       {report.verified ? 'OK' : 'Oczekuje'}
                     </div>
                   </td>
-                  <td className="px-8 py-7 text-right">
-                    <div className="flex justify-end gap-2 lg:opacity-0 lg:group-hover:opacity-100 transition-all">
+                  <td className="px-4 py-7 text-right sticky right-0 bg-white group-hover:bg-slate-50">
+                    <div className="flex justify-end gap-1">
                       {!report.verified && (
-                        <button onClick={() => handleVerify(report.id)} className="p-2.5 bg-emerald-50 border border-emerald-200 text-emerald-500 hover:bg-emerald-500 hover:text-white hover:border-emerald-500 rounded-xl transition-all shadow-sm" title="Zatwierdź raport"><CheckCircle2 size={16}/></button>
+                        <button onClick={() => handleVerify(report.id)} className="p-2 bg-emerald-50 border border-emerald-200 text-emerald-500 hover:bg-emerald-500 hover:text-white rounded-lg transition-all" title="Zatwierdź"><CheckCircle2 size={15}/></button>
                       )}
-                      <button onClick={() => setEditModal(report)} className="p-2.5 bg-white border border-slate-200 text-amber-500 lg:text-slate-400 hover:text-amber-600 rounded-xl transition-all shadow-sm" title="Edytuj"><Edit2 size={16}/></button>
-                      <button onClick={() => handleDelete(report.id)} className="p-2.5 bg-white border border-slate-200 text-rose-500 lg:text-slate-400 hover:text-rose-600 rounded-xl transition-all shadow-sm" title="Usuń"><Trash2 size={16}/></button>
+                      <button onClick={() => setEditModal(report)} className="p-2 bg-amber-50 border border-amber-200 text-amber-500 hover:bg-amber-500 hover:text-white rounded-lg transition-all" title="Edytuj"><Edit2 size={15}/></button>
+                      <button onClick={() => handleDelete(report.id)} className="p-2 bg-rose-50 border border-rose-200 text-rose-500 hover:bg-rose-500 hover:text-white rounded-lg transition-all" title="Usuń"><Trash2 size={15}/></button>
                     </div>
                   </td>
                 </tr>
