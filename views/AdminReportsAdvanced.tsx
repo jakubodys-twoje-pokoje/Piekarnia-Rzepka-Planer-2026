@@ -18,7 +18,8 @@ const AdminReportsAdvanced: React.FC = () => {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   
   const now = new Date();
-  const [selectedYear] = useState(now.getFullYear());
+  const [selectedMonth, setSelectedMonth] = useState(now.getMonth());
+  const [selectedYear, setSelectedYear] = useState(now.getFullYear());
 
   useEffect(() => {
     const fetchData = async () => {
@@ -46,12 +47,11 @@ const AdminReportsAdvanced: React.FC = () => {
   }, [reports, viewScope]);
 
   const monthlyData = useMemo(() => {
-    const currentMonth = now.getMonth();
-    const daysInMonth = new Date(selectedYear, currentMonth + 1, 0).getDate();
-    
+    const daysInMonth = new Date(selectedYear, selectedMonth + 1, 0).getDate();
+
     return Array.from({ length: daysInMonth }, (_, i) => {
       const day = i + 1;
-      const dateStr = `${selectedYear}-${(currentMonth + 1).toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
+      const dateStr = `${selectedYear}-${(selectedMonth + 1).toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
       const dayReps = filteredReports.filter(r => r.date === dateStr);
       
       const bSales = dayReps.reduce((s, r) => s + (r.bakery_sales || 0), 0);
@@ -71,7 +71,7 @@ const AdminReportsAdvanced: React.FC = () => {
         details: dayReps
       };
     });
-  }, [filteredReports, selectedYear]);
+  }, [filteredReports, selectedYear, selectedMonth]);
 
   const quarterlyData = useMemo(() => {
     return [0, 1, 2, 3].map(qIdx => {
@@ -161,6 +161,22 @@ const AdminReportsAdvanced: React.FC = () => {
               </button>
             ))}
           </div>
+          {mode === 'monthly' && (
+            <select
+              value={selectedMonth}
+              onChange={(e) => { setSelectedMonth(Number(e.target.value)); setExpandedId(null); }}
+              className="px-6 py-3.5 bg-amber-500 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest outline-none shadow-xl border-none cursor-pointer"
+            >
+              {MONTHS.map((m, i) => <option key={i} value={i} className="text-slate-900">{m}</option>)}
+            </select>
+          )}
+          <select
+            value={selectedYear}
+            onChange={(e) => { setSelectedYear(Number(e.target.value)); setExpandedId(null); }}
+            className="px-6 py-3.5 bg-slate-700 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest outline-none shadow-xl border-none cursor-pointer"
+          >
+            {[2024, 2025, 2026].map(y => <option key={y} value={y} className="text-slate-900">{y}</option>)}
+          </select>
           <select value={viewScope} onChange={(e) => setViewScope(e.target.value)} className="px-6 py-3.5 bg-slate-900 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest outline-none shadow-xl border-none cursor-pointer">
             <option value="global">🌍 WSZYSTKIE PUNKTY</option>
             {locations.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}

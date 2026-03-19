@@ -132,9 +132,9 @@ const AdminInventory: React.FC = () => {
                   <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{item.section} &middot; {item.category}</p>
                 </div>
               </div>
-              <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-all">
-                <button onClick={() => setModal(item)} className="p-2 text-slate-300 hover:text-amber-600"><Edit2 size={14}/></button>
-                <button onClick={() => remove(item.id)} className="p-2 text-slate-300 hover:text-rose-600"><Trash2 size={14}/></button>
+              <div className="flex gap-1 lg:opacity-0 lg:group-hover:opacity-100 transition-all">
+                <button onClick={() => setModal(item)} className="p-2 text-amber-500 lg:text-slate-300 hover:text-amber-600"><Edit2 size={16}/></button>
+                <button onClick={() => remove(item.id)} className="p-2 text-rose-500 lg:text-slate-300 hover:text-rose-600"><Trash2 size={16}/></button>
               </div>
             </div>
           </div>
