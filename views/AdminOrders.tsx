@@ -293,38 +293,40 @@ const AdminOrders: React.FC = () => {
               <table className="w-full border-collapse">
                 <thead>
                   <tr className="bg-slate-900 text-white print:bg-slate-200 print:text-black">
-                    <th className="sticky left-0 z-20 bg-slate-900 px-6 py-8 text-left text-[10px] font-black uppercase tracking-widest print:bg-white print:text-black min-w-[180px]">Towar / Punkt</th>
+                    <th className="sticky left-0 z-20 bg-slate-900 px-2 py-4 text-left text-[9px] font-black uppercase tracking-wide print:bg-white print:text-black min-w-[160px] print:min-w-[120px]">Towar</th>
                     {locations.map(l => (
-                      <th key={l.id} className="px-3 py-8 text-center text-[10px] font-black uppercase tracking-widest print:print-vertical-th min-w-[100px] print:min-w-0">
-                        {l.name.replace('Piekarnia ', '')}
+                      <th key={l.id} className="px-1 py-4 text-center text-[8px] font-black uppercase tracking-wide min-w-[70px] print:min-w-0 print:text-[6pt]">
+                        {l.name.replace('Piekarnia ', '').replace('Cukiernia ', '')}
                       </th>
                     ))}
-                    <th className="sticky right-0 z-20 bg-amber-500 px-6 py-8 text-center text-[10px] font-black uppercase tracking-widest text-white print:bg-slate-200 print:text-black print:print-sum-col min-w-[80px]">SUMA</th>
+                    <th className="sticky right-0 z-20 bg-amber-500 px-2 py-4 text-center text-[9px] font-black uppercase text-white print:bg-slate-200 print:text-black print:print-sum-col min-w-[50px]">Suma</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 print:divide-black">
                   {['Piekarnia', 'Cukiernia'].map(section => (
                     <React.Fragment key={section}>
-                      <tr className="section-row bg-slate-100 font-black text-[11px] uppercase tracking-[0.3em] text-slate-500 print:bg-slate-300 print:text-black">
-                        <td colSpan={locations.length + 2} className="px-8 py-4 print:py-1">{section}</td>
+                      <tr className="section-row bg-slate-800 font-black text-[10px] uppercase tracking-[0.2em] text-white print:bg-slate-300 print:text-black">
+                        <td colSpan={locations.length + 2} className="px-4 py-2 print:py-1">{section}</td>
                       </tr>
                       {productionSummary.filter(s => s.section === section).map((prod, idx) => (
                         <tr key={idx} className="hover:bg-slate-50">
-                          <td className="sticky left-0 z-10 bg-white px-6 py-4 text-[11px] font-black text-slate-800 border-r border-slate-100 print:py-1">
-                             <span className="w-8 inline-block text-[9px] text-slate-300 print:text-black">{prod.code || '-'}</span>
-                             <span className="uppercase">{prod.name}</span>
+                          <td className="sticky left-0 z-10 bg-white px-2 py-2 text-[10px] font-black text-slate-800 border-r border-slate-100 print:py-1 print:px-1">
+                            <div className="flex items-center gap-2">
+                              <span className="w-10 shrink-0 text-center text-[9px] text-slate-400 bg-slate-50 rounded px-1 py-0.5 print:bg-transparent print:text-black">{prod.code || '-'}</span>
+                              <span className="uppercase leading-tight">{prod.name}</span>
+                            </div>
                           </td>
                           {locations.map(loc => {
                             const orderForLoc = orders.find(o => o.location_id === loc.id);
                             const itemInOrder = orderForLoc?.order_items.find((oi: any) => oi.inventory.name === prod.name);
                             return (
-                              <td key={loc.id} className={`px-2 py-4 text-center text-lg font-black border-r border-slate-50 print:py-1 print:text-[9pt] ${itemInOrder ? 'text-slate-900 bg-amber-50/20' : 'text-slate-100 print:text-transparent'}`}>
+                              <td key={loc.id} className={`px-1 py-2 text-center text-sm font-black border-r border-slate-50 print:py-1 print:text-[8pt] ${itemInOrder ? 'text-slate-900 bg-amber-50/30' : 'text-slate-200 print:text-transparent'}`}>
                                 {itemInOrder?.quantity || ''}
                               </td>
                             );
                           })}
-                          <td className="sticky right-0 z-10 bg-amber-50/90 px-6 py-4 text-center text-xl font-black text-amber-700 print:bg-slate-100 print:text-black print:text-[10pt] print:py-1 print:print-sum-col">
-                             {prod.qty}
+                          <td className="sticky right-0 z-10 bg-amber-100 px-2 py-2 text-center text-base font-black text-amber-700 print:bg-slate-100 print:text-black print:text-[9pt] print:py-1 print:print-sum-col">
+                            {prod.qty}
                           </td>
                         </tr>
                       ))}
