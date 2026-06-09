@@ -5,7 +5,7 @@
 const fs = require('fs');
 
 const CSV_PATH  = '/root/.claude/uploads/22338530-a9f9-5503-9995-7e59e1501b43/0d7d0a79-ZAM_WIENIA_DLA_PIEKARNIA_RZEPKA__DASHBOARD.csv';
-const OUT_PATH  = '/home/user/Piekarnia-Rzepka-Planer-2026/import_czerwiec_2026.sql';
+const OUT_PATH  = '/home/user/Piekarnia-Rzepka-Planer-2026/import_czerwiec_2025.sql';
 
 // ── CSV parser (obsługuje pola w cudzysłowach z przecinkami wewnątrz) ─────────
 function parseCSVLine(line) {
@@ -20,16 +20,10 @@ function parseCSVLine(line) {
   return result;
 }
 
-// ── Mapowanie dat: VI 2025 → VI 2026 (układ tygodni identyczny, przesunięcie -1 dzień) ──
+// ── Konwersja daty DD.MM.YYYY → YYYY-MM-DD (oryginalne daty z CSV) ───────────
 function mapDate(dateStr) {
   const [d, m, y] = dateStr.split('.').map(Number);
-  const dt = new Date(y, m - 1, d);
-  dt.setDate(dt.getDate() - 1);
-  dt.setFullYear(2026);
-  const yy = dt.getFullYear();
-  const mm = String(dt.getMonth() + 1).padStart(2, '0');
-  const dd = String(dt.getDate()).padStart(2, '0');
-  return `${yy}-${mm}-${dd}`;
+  return `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
 }
 
 // ── Wczytaj CSV ───────────────────────────────────────────────────────────────
@@ -83,9 +77,9 @@ const uniqueDates = [...new Set(rows.map(r => r.date))].sort();
 
 // ── Generuj SQL ───────────────────────────────────────────────────────────────
 let sql = `-- ═══════════════════════════════════════════════════════════════
--- IMPORT ZAMÓWIEŃ: PLAC POCZTOWY — CZERWIEC 2026
--- Źródło: ZAM_WIENIA_DLA_PIEKARNIA_RZEPKA__DASHBOARD.csv (VI 2025)
--- Daty przesunięte z VI/V 2025 na VI/V 2026 (ten sam układ tygodni).
+-- IMPORT ZAMÓWIEŃ: PLAC POCZTOWY — CZERWIEC 2025 (dane historyczne)
+-- Źródło: ZAM_WIENIA_DLA_PIEKARNIA_RZEPKA__DASHBOARD.csv
+-- Daty oryginalne z CSV (V–VI 2025).
 --
 -- INSTRUKCJA:
 --   1. Supabase Dashboard → SQL Editor → New query
@@ -179,12 +173,12 @@ BEGIN
   RAISE NOTICE '✓ Import zakończony! Zamówień: %',
     (SELECT COUNT(*) FROM orders
      WHERE location_id = v_loc
-       AND delivery_date BETWEEN '2026-05-01' AND '2026-07-01');
+       AND delivery_date BETWEEN '2025-05-01' AND '2025-07-01');
   RAISE NOTICE '✓ Pozycji łącznie: %',
     (SELECT COUNT(*) FROM order_items oi
      JOIN orders o ON oi.order_id = o.id
      WHERE o.location_id = v_loc
-       AND o.delivery_date BETWEEN '2026-05-01' AND '2026-07-01');
+       AND o.delivery_date BETWEEN '2025-05-01' AND '2025-07-01');
 END $$;
 
 COMMIT;
@@ -200,7 +194,7 @@ FROM orders o
 JOIN order_items oi ON oi.order_id = o.id
 JOIN locations   l  ON l.id = o.location_id
 WHERE l.name ILIKE '%PLAC POCZTOWY%'
-  AND o.delivery_date BETWEEN '2026-05-01' AND '2026-07-01'
+  AND o.delivery_date BETWEEN '2025-05-01' AND '2025-07-01'
 GROUP BY o.delivery_date, o.status
 ORDER BY o.delivery_date;
 
